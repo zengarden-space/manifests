@@ -28,6 +28,8 @@ spec:
           prune: true
           allowEmpty: true
           selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
       source:
         repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
         targetRevision: main
