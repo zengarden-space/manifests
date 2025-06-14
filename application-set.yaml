@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: applications
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - list:
+      elements:
+      - cluster: dev
+        url: https://kubernetes.default.svc
+  - git:
+      repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
+      revision: main
+      directories:
+      - path: "*"
+  template:
+    metadata:
+      name: '{{.path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
+        targetRevision: main
+        path: '{{.path.path}}/{{.cluster}}.yaml'
+      destination:
+        server: '{{.url}}'
+        namespace: '{{.path.basenameNormalized}}'
