@@ -23,10 +23,15 @@ spec:
       name: '{{.path.basename}}'
     spec:
       project: default
+      syncPolicy:
+        automated:
+          prune: true
+          allowEmpty: true
+          selfHeal: true
       source:
         repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
         targetRevision: main
-        path: '{{.path.path}}/{{.cluster}}/manifest.yaml'
+        path: '{{.path.path}}/{{.cluster}}'
       destination:
         server: '{{.url}}'
         namespace: '{{.path.basenameNormalized}}'
