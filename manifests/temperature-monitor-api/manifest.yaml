@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/temperature-monitor-api:main-9653b46"
+          image: "gitea.zengarden.space/zengarden-space/temperature-monitor-api:main-5e41587"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
