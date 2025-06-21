@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/temperature-monitor:main-df25d21"
+          image: "gitea.zengarden.space/zengarden-space/temperature-monitor:main-6a1e341"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -174,13 +174,8 @@ metadata:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: internal-ca
 spec:
   ingressClassName: external
-  tls:
-    - hosts:
-        - "t.zengarden.space"
-      secretName: temperature-monitor-tls
   rules:
     - host: "t.zengarden.space"
       http:
