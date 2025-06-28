@@ -72,7 +72,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/knowledgebase-app-api:main-9c6a099"
+          image: "gitea.zengarden.space/zengarden-space/knowledgebase-app-api:main-a34e189"
           imagePullPolicy: Always
           ports:
             - name: http
@@ -147,7 +147,7 @@ metadata:
 spec:
   ingressClassName: external
   rules:
-    - host: "t.zengarden.space"
+    - host: "kb.zengarden.space"
       http:
         paths:
           - path: /api
