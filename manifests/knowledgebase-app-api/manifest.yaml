@@ -72,7 +72,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/knowledgebase-app-api:main-74fc7c4"
+          image: "gitea.zengarden.space/zengarden-space/knowledgebase-app-api:main-9c6a099"
           imagePullPolicy: Always
           ports:
             - name: http
