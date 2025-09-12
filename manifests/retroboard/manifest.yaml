@@ -1,24 +1,24 @@
 ---
-# Source: earth-meter/templates/serviceaccount.yaml
+# Source: retroboard/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: retroboard-earth-meter
+  name: retroboard
   labels:
-    helm.sh/chart: earth-meter-0.1.0
-    app.kubernetes.io/name: earth-meter
+    helm.sh/chart: retroboard-0.1.0
+    app.kubernetes.io/name: retroboard
     app.kubernetes.io/instance: retroboard
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: earth-meter/templates/service.yaml
+# Source: retroboard/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: retroboard-earth-meter
+  name: retroboard
   labels:
-    helm.sh/chart: earth-meter-0.1.0
-    app.kubernetes.io/name: earth-meter
+    helm.sh/chart: retroboard-0.1.0
+    app.kubernetes.io/name: retroboard
     app.kubernetes.io/instance: retroboard
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -30,39 +30,39 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: earth-meter
+    app.kubernetes.io/name: retroboard
     app.kubernetes.io/instance: retroboard
 ---
-# Source: earth-meter/templates/deployment.yaml
+# Source: retroboard/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: retroboard-earth-meter
+  name: retroboard
   labels:
-    helm.sh/chart: earth-meter-0.1.0
-    app.kubernetes.io/name: earth-meter
+    helm.sh/chart: retroboard-0.1.0
+    app.kubernetes.io/name: retroboard
     app.kubernetes.io/instance: retroboard
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: earth-meter
+      app.kubernetes.io/name: retroboard
       app.kubernetes.io/instance: retroboard
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: earth-meter
+        app.kubernetes.io/name: retroboard
         app.kubernetes.io/instance: retroboard
     spec:
-      serviceAccountName: retroboard-earth-meter
+      serviceAccountName: retroboard
       securityContext:
         fsGroup: 2000
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: earth-meter
+        - name: retroboard
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/earth-meter:main-bfb2660"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-e74c542"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -123,18 +123,18 @@ spec:
                 - key: app.kubernetes.io/name
                   operator: In
                   values:
-                  - earth-meter
+                  - retroboard
               topologyKey: kubernetes.io/hostname
             weight: 100
 ---
-# Source: earth-meter/templates/hpa.yaml
+# Source: retroboard/templates/hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: retroboard-earth-meter
+  name: retroboard
   labels:
-    helm.sh/chart: earth-meter-0.1.0
-    app.kubernetes.io/name: earth-meter
+    helm.sh/chart: retroboard-0.1.0
+    app.kubernetes.io/name: retroboard
     app.kubernetes.io/instance: retroboard
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -142,7 +142,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: retroboard-earth-meter
+    name: retroboard
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -159,14 +159,14 @@ spec:
           type: Utilization
           averageUtilization: 80
 ---
-# Source: earth-meter/templates/ingress.yaml
+# Source: retroboard/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: retroboard-earth-meter
+  name: retroboard
   labels:
-    helm.sh/chart: earth-meter-0.1.0
-    app.kubernetes.io/name: earth-meter
+    helm.sh/chart: retroboard-0.1.0
+    app.kubernetes.io/name: retroboard
     app.kubernetes.io/instance: retroboard
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -184,6 +184,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: retroboard-earth-meter
+                name: retroboard
                 port:
                   number: 80
