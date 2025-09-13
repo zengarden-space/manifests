@@ -190,22 +190,22 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-9238b59"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-02f156c"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 3000
               protocol: TCP
           env:
-            - key: DB_HOST
+            - name: DB_HOST
               value: retroboard-api-postgresql
-            - key: DB_PORT
+            - name: DB_PORT
               value: "5432"
-            - key: DB_NAME
+            - name: DB_NAME
               value: postgres
-            - key: DB_USER
+            - name: DB_USER
               value: postgres
-            - key: DB_PASSWORD
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
