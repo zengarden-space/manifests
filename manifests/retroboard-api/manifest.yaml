@@ -190,7 +190,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-c70da45"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-35fe9d7"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -371,6 +371,8 @@ spec:
               value: /opt/bitnami/postgresql/secrets/password
             - name: POSTGRES_POSTGRES_PASSWORD_FILE
               value: /opt/bitnami/postgresql/secrets/postgres-password
+            - name: POSTGRES_DATABASE
+              value: "retroboard"
             # LDAP
             - name: POSTGRESQL_ENABLE_LDAP
               value: "no"
@@ -404,7 +406,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - exec pg_isready -U "retroboard" -h 127.0.0.1 -p 5432
+                - exec pg_isready -U "retroboard" -d "dbname=retroboard" -h 127.0.0.1 -p 5432
           readinessProbe:
             failureThreshold: 6
             initialDelaySeconds: 5
@@ -417,7 +419,7 @@ spec:
                 - -c
                 - -e
                 - |
-                  exec pg_isready -U "retroboard" -h 127.0.0.1 -p 5432
+                  exec pg_isready -U "retroboard" -d "dbname=retroboard" -h 127.0.0.1 -p 5432
                   [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
           resources:
             limits:
