@@ -74,6 +74,42 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: retroboard-api/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: retroboard-api-job-watcher
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+---
+# Source: retroboard-api/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: retroboard-api-job-watcher
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+- kind: ServiceAccount
+  name: retroboard-api
+  namespace: retroboard-api
+roleRef:
+  kind: Role
+  name: retroboard-api-job-watcher
+  apiGroup: rbac.authorization.k8s.io
+---
 # Source: retroboard-api/charts/postgresql/templates/primary/svc-headless.yaml
 apiVersion: v1
 kind: Service
@@ -180,6 +216,23 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-migration
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for migration job to complete..."
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-b371658 --timeout=300s
+              echo "Migration job completed successfully"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
       containers:
         - name: retroboard-api
           securityContext:
@@ -190,7 +243,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-6f2978d"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-b371658"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -565,3 +618,72 @@ spec:
   symbolCharacters: ""
   noUpper: false
   allowRepeat: true
+---
+# Source: retroboard-api/templates/migration-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: retroboard-api-migration-main-b371658
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: migration
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: retroboard-api
+        app.kubernetes.io/instance: retroboard-api
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: retroboard-api
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migration
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-b371658"
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/scripts/migrate.js", "up"]
+          env:
+            - name: DB_HOST
+              value: retroboard-api-postgresql
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: retroboard
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: retroboard-api-postgresql
+                  key: postgres-password
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+  backoffLimit: 3
