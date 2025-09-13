@@ -225,7 +225,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-15db63a --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-6fed660 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -244,7 +244,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-15db63a"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-6fed660"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -521,6 +521,71 @@ spec:
           requests:
             storage: "8Gi"
 ---
+# Source: retroboard-api/templates/migration-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: retroboard-api-migration-main-6fed660
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: migration
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: retroboard-api
+        app.kubernetes.io/instance: retroboard-api
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: retroboard-api
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migration
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-6fed660"
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/scripts/migrate.js", "up"]
+          env:
+            - name: DB_HOST
+              value: retroboard-api-postgresql
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: retroboard
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: retroboard-api-postgresql
+                  key: postgres-password
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+  backoffLimit: 3
+---
 # Source: retroboard-api/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -619,72 +684,3 @@ spec:
   symbolCharacters: ""
   noUpper: false
   allowRepeat: true
----
-# Source: retroboard-api/templates/migration-job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: retroboard-api-migration-main-15db63a
-  labels:
-    helm.sh/chart: retroboard-api-0.1.0
-    app.kubernetes.io/name: retroboard-api
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/component: migration
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-5"
-    helm.sh/hook-delete-policy: before-hook-creation
-spec:
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: retroboard-api
-        app.kubernetes.io/instance: retroboard-api
-        app.kubernetes.io/component: migration
-    spec:
-      restartPolicy: Never
-      serviceAccountName: retroboard-api
-      securityContext:
-        fsGroup: 2000
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: migration
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-15db63a"
-          imagePullPolicy: IfNotPresent
-          command: ["node", "dist/scripts/migrate.js", "up"]
-          env:
-            - name: DB_HOST
-              value: retroboard-api-postgresql
-            - name: DB_PORT
-              value: "5432"
-            - name: DB_NAME
-              value: retroboard
-            - name: DB_USER
-              value: postgres
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: retroboard-api-postgresql
-                  key: postgres-password
-            - name: NODE_ENV
-              value: "production"
-          resources:
-            limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-  backoffLimit: 3
