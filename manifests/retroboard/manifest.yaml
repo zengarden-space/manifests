@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard:main-3f4ff32"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-795e4f5"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
