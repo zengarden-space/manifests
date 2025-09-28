@@ -225,7 +225,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-b81a387 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-ce13f74 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -244,7 +244,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-b81a387"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-ce13f74"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -528,7 +528,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-b81a387
+  name: retroboard-api-migration-main-ce13f74
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -551,6 +551,24 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-db
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h retroboard-api-postgresql -p 5432 -U postgres; do
+                echo "Waiting for PostgreSQL to be ready..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: retroboard-api-postgresql
+                  key: postgres-password
       containers:
         - name: migration
           securityContext:
@@ -561,7 +579,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-b81a387"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-ce13f74"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
