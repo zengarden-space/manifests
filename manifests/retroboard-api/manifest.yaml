@@ -200,6 +200,7 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: retroboard-api
@@ -225,7 +226,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-8f7fccc --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-4ca3b49 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -244,7 +245,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-8f7fccc"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-4ca3b49"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -297,38 +298,6 @@ spec:
                   - retroboard-api
               topologyKey: kubernetes.io/hostname
             weight: 100
----
-# Source: retroboard-api/templates/hpa.yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: retroboard-api
-  labels:
-    helm.sh/chart: retroboard-api-0.1.0
-    app.kubernetes.io/name: retroboard-api
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: retroboard-api
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 80
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
 ---
 # Source: retroboard-api/charts/postgresql/templates/primary/statefulset.yaml
 apiVersion: apps/v1
@@ -523,7 +492,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-8f7fccc
+  name: retroboard-api-migration-main-4ca3b49
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -582,7 +551,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-8f7fccc"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-4ca3b49"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
