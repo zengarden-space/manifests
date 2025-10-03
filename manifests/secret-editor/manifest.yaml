@@ -104,11 +104,20 @@ spec:
       serviceAccountName: secret-editor
       securityContext:
         fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: retroboard-api
           securityContext:
-            {}
-          image: "secret-editor:main-bf56ead"
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "secret-editor:main-ddc3297"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
