@@ -117,7 +117,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-9dd2ebc"
+          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-5c84aa7"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -132,17 +132,21 @@ spec:
                   name: secret-editor-retroboard-api-session
                   key: session-secret
           livenessProbe:
+            failureThreshold: 3
             httpGet:
-              path: /login
+              path: /health
               port: http
             initialDelaySeconds: 30
-            periodSeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
+            failureThreshold: 3
             httpGet:
-              path: /login
+              path: /health
               port: http
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
           resources:
             limits:
               cpu: 500m
