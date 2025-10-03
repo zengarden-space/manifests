@@ -70,7 +70,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 3000
+    - port: 80
       targetPort: http
       protocol: TCP
       name: http
@@ -90,7 +90,7 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: retroboard-api
@@ -117,7 +117,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "secret-editor:main-ddc3297"
+          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-9dd2ebc"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -174,7 +174,7 @@ spec:
               service:
                 name: secret-editor-retroboard-api
                 port:
-                  number: 3000
+                  number: 80
 ---
 # Source: retroboard-api/templates/session-secret.yaml
 apiVersion: external-secrets.io/v1beta1
