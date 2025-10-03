@@ -1,0 +1,191 @@
+---
+# Source: retroboard-api/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: retroboard-api/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-editor-retroboard-api-secrets-access
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups:
+  - ""
+  resourceNames: []
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+  - delete
+---
+# Source: retroboard-api/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: secret-editor-retroboard-api-secrets-access
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: secret-editor-retroboard-api-secrets-access
+subjects:
+- kind: ServiceAccount
+  name: secret-editor
+  namespace: secret-editor
+---
+# Source: retroboard-api/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: secret-editor-retroboard-api
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+---
+# Source: retroboard-api/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-editor-retroboard-api
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: retroboard-api
+      app.kubernetes.io/instance: secret-editor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: retroboard-api
+        app.kubernetes.io/instance: secret-editor
+    spec:
+      serviceAccountName: secret-editor
+      securityContext:
+        fsGroup: 2000
+      containers:
+        - name: retroboard-api
+          securityContext:
+            {}
+          image: "secret-editor:main-bf56ead"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: secret-editor-retroboard-api-session
+                  key: session-secret
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: retroboard-api/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: secret-editor-retroboard-api
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ingressClassName: internal
+  rules:
+    - host: "secrets.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: secret-editor-retroboard-api
+                port:
+                  number: 3000
+---
+# Source: retroboard-api/templates/session-secret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-editor-retroboard-api-session
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: secret-editor-retroboard-api-session
+    creationPolicy: Owner
+  dataFrom:
+    - extract:
+        key: secret-editor
