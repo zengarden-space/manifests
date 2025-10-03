@@ -117,7 +117,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-5c84aa7"
+          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-7eb7e07"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -166,8 +166,14 @@ metadata:
     app.kubernetes.io/instance: secret-editor
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: internal
+  tls:
+    - hosts:
+        - "secrets.zengarden.space"
+      secretName: secrets-tls
   rules:
     - host: "secrets.zengarden.space"
       http:
