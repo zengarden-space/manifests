@@ -1,67 +1,4 @@
 ---
-# Source: retroboard-api/charts/postgresql/templates/primary/networkpolicy.yaml
-kind: NetworkPolicy
-apiVersion: networking.k8s.io/v1
-metadata:
-  name: retroboard-api-postgresql
-  namespace: "dev-retroboard-api"
-  labels:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 17.6.0
-    helm.sh/chart: postgresql-16.7.27
-    app.kubernetes.io/component: primary
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/instance: retroboard-api
-      app.kubernetes.io/name: postgresql
-      app.kubernetes.io/component: primary
-  policyTypes:
-    - Ingress
-    - Egress
-  egress:
-    - {}
-  ingress:
-    - ports:
-        - port: 5432
----
-# Source: retroboard-api/charts/postgresql/templates/primary/pdb.yaml
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: retroboard-api-postgresql
-  namespace: "dev-retroboard-api"
-  labels:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 17.6.0
-    helm.sh/chart: postgresql-16.7.27
-    app.kubernetes.io/component: primary
-spec:
-  maxUnavailable: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: retroboard-api
-      app.kubernetes.io/name: postgresql
-      app.kubernetes.io/component: primary
----
-# Source: retroboard-api/charts/postgresql/templates/serviceaccount.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: retroboard-api-postgresql
-  namespace: "dev-retroboard-api"
-  labels:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 17.6.0
-    helm.sh/chart: postgresql-16.7.27
-automountServiceAccountToken: false
----
 # Source: retroboard-api/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -109,62 +46,6 @@ roleRef:
   kind: Role
   name: retroboard-api-job-watcher
   apiGroup: rbac.authorization.k8s.io
----
-# Source: retroboard-api/charts/postgresql/templates/primary/svc-headless.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: retroboard-api-postgresql-hl
-  namespace: "dev-retroboard-api"
-  labels:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 17.6.0
-    helm.sh/chart: postgresql-16.7.27
-    app.kubernetes.io/component: primary
-  annotations:
-spec:
-  type: ClusterIP
-  clusterIP: None
-  # We want all pods in the StatefulSet to have their addresses published for
-  # the sake of the other Postgresql pods even before they're ready, since they
-  # have to be able to talk to each other in order to become ready.
-  publishNotReadyAddresses: true
-  ports:
-    - name: tcp-postgresql
-      port: 5432
-      targetPort: tcp-postgresql
-  selector:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/component: primary
----
-# Source: retroboard-api/charts/postgresql/templates/primary/svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: retroboard-api-postgresql
-  namespace: "dev-retroboard-api"
-  labels:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 17.6.0
-    helm.sh/chart: postgresql-16.7.27
-    app.kubernetes.io/component: primary
-spec:
-  type: ClusterIP
-  sessionAffinity: None
-  ports:
-    - name: tcp-postgresql
-      port: 5432
-      targetPort: tcp-postgresql
-      nodePort: null
-  selector:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/component: primary
 ---
 # Source: retroboard-api/templates/service.yaml
 apiVersion: v1
@@ -226,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-6c8d9db --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-79f2ed8 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -245,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-6c8d9db"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-79f2ed8"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -301,200 +182,11 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
 ---
-# Source: retroboard-api/charts/postgresql/templates/primary/statefulset.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: retroboard-api-postgresql
-  namespace: "dev-retroboard-api"
-  labels:
-    app.kubernetes.io/instance: retroboard-api
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 17.6.0
-    helm.sh/chart: postgresql-16.7.27
-    app.kubernetes.io/component: primary
-spec:
-  replicas: 1
-  serviceName: retroboard-api-postgresql-hl
-  updateStrategy:
-    rollingUpdate: {}
-    type: RollingUpdate
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: retroboard-api
-      app.kubernetes.io/name: postgresql
-      app.kubernetes.io/component: primary
-  template:
-    metadata:
-      name: retroboard-api-postgresql
-      labels:
-        app.kubernetes.io/instance: retroboard-api
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: postgresql
-        app.kubernetes.io/version: 17.6.0
-        helm.sh/chart: postgresql-16.7.27
-        app.kubernetes.io/component: primary
-    spec:
-      serviceAccountName: retroboard-api-postgresql
-      
-      automountServiceAccountToken: false
-      affinity:
-        podAffinity:
-          
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app.kubernetes.io/instance: retroboard-api
-                    app.kubernetes.io/name: postgresql
-                    app.kubernetes.io/component: primary
-                topologyKey: kubernetes.io/hostname
-              weight: 1
-        nodeAffinity:
-          
-      securityContext:
-        fsGroup: 1001
-        fsGroupChangePolicy: Always
-        supplementalGroups: []
-        sysctls: []
-      hostNetwork: false
-      hostIPC: false
-      containers:
-        - name: postgresql
-          image: docker.io/bitnami/postgresql:17.6.0-debian-12-r4
-          imagePullPolicy: "IfNotPresent"
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            privileged: false
-            readOnlyRootFilesystem: true
-            runAsGroup: 1001
-            runAsNonRoot: true
-            runAsUser: 1001
-            seLinuxOptions: {}
-            seccompProfile:
-              type: RuntimeDefault
-          env:
-            - name: BITNAMI_DEBUG
-              value: "false"
-            - name: POSTGRESQL_PORT_NUMBER
-              value: "5432"
-            - name: POSTGRESQL_VOLUME_DIR
-              value: "/bitnami/postgresql"
-            - name: PGDATA
-              value: "/bitnami/postgresql/data"
-            # Authentication
-            - name: POSTGRES_USER
-              value: "retroboard"
-            - name: POSTGRES_PASSWORD_FILE
-              value: /opt/bitnami/postgresql/secrets/password
-            - name: POSTGRES_POSTGRES_PASSWORD_FILE
-              value: /opt/bitnami/postgresql/secrets/postgres-password
-            - name: POSTGRES_DATABASE
-              value: "retroboard"
-            # LDAP
-            - name: POSTGRESQL_ENABLE_LDAP
-              value: "no"
-            # TLS
-            - name: POSTGRESQL_ENABLE_TLS
-              value: "no"
-            # Audit
-            - name: POSTGRESQL_LOG_HOSTNAME
-              value: "false"
-            - name: POSTGRESQL_LOG_CONNECTIONS
-              value: "false"
-            - name: POSTGRESQL_LOG_DISCONNECTIONS
-              value: "false"
-            - name: POSTGRESQL_PGAUDIT_LOG_CATALOG
-              value: "off"
-            # Others
-            - name: POSTGRESQL_CLIENT_MIN_MESSAGES
-              value: "error"
-            - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
-              value: "pgaudit"
-          ports:
-            - name: tcp-postgresql
-              containerPort: 5432
-          livenessProbe:
-            failureThreshold: 6
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 5
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - exec pg_isready -U "retroboard" -d "dbname=retroboard" -h 127.0.0.1 -p 5432
-          readinessProbe:
-            failureThreshold: 6
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 5
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - -e
-                - |
-                  exec pg_isready -U "retroboard" -d "dbname=retroboard" -h 127.0.0.1 -p 5432
-                  [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
-          resources:
-            limits:
-              cpu: 150m
-              ephemeral-storage: 2Gi
-              memory: 192Mi
-            requests:
-              cpu: 100m
-              ephemeral-storage: 50Mi
-              memory: 128Mi
-          volumeMounts:
-            - name: empty-dir
-              mountPath: /tmp
-              subPath: tmp-dir
-            - name: empty-dir
-              mountPath: /opt/bitnami/postgresql/conf
-              subPath: app-conf-dir
-            - name: empty-dir
-              mountPath: /opt/bitnami/postgresql/tmp
-              subPath: app-tmp-dir
-            - name: postgresql-password
-              mountPath: /opt/bitnami/postgresql/secrets/
-            - name: dshm
-              mountPath: /dev/shm
-            - name: data
-              mountPath: /bitnami/postgresql
-      volumes:
-        - name: empty-dir
-          emptyDir: {}
-        - name: postgresql-password
-          secret:
-            secretName: retroboard-api-postgresql
-        - name: dshm
-          emptyDir:
-            medium: Memory
-  volumeClaimTemplates:
-    - apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: data
-      spec:
-        accessModes:
-          - "ReadWriteOnce"
-        resources:
-          requests:
-            storage: "8Gi"
----
 # Source: retroboard-api/templates/migration-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-6c8d9db
+  name: retroboard-api-migration-main-79f2ed8
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -553,7 +245,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-6c8d9db"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-79f2ed8"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -609,6 +301,16 @@ spec:
                 name: retroboard-api
                 port:
                   number: 80
+---
+# Source: retroboard-api/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: retroboard-db
+spec:
+  instances: 1
+  storage:
+    size: 20Gi
 ---
 # Source: retroboard-api/templates/environments-secret.yaml
 apiVersion: external-secrets.io/v1beta1
