@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-79f2ed8 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-694a34e --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-79f2ed8"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-694a34e"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -136,16 +136,21 @@ spec:
             - name: "CORS_ORIGIN"
               value: "https://retroboard.dev.zengarden.space"
             - name: "DB_HOST"
-              value: "retroboard-api-postgresql"
+              value: "retroboard-psql-rw"
             - name: "DB_NAME"
-              value: "postgres"
+              value: "retroboard"
             - name: "DB_PORT"
               value: "5432"
             - name: "DB_USER"
               value: "retroboard"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "retroboard"
+                  key: password
           envFrom:
             - secretRef:
-                name: retroboard-api-config
+                name: retroboard-api-envs-secrets
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -186,7 +191,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-79f2ed8
+  name: retroboard-api-migration-main-694a34e
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -224,17 +229,24 @@ spec:
             - sh
             - -c
             - |
-              until pg_isready -h retroboard-api-postgresql -p 5432 -U postgres; do
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
                 echo "Waiting for PostgreSQL to be ready..."
                 sleep 2
               done
               echo "PostgreSQL is ready!"
           env:
-            - name: PGPASSWORD
+            - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: retroboard-api-postgresql
-                  key: postgres-password
+                  name: retroboard-psql-app
+                  key: host
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: retroboard-psql-app
+                  key: port
+            - name: DB_USER
+              value: "retroboard-owner"
       containers:
         - name: migration
           securityContext:
@@ -245,23 +257,29 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-79f2ed8"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-694a34e"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
             - name: DB_HOST
-              value: retroboard-api-postgresql
+              valueFrom:
+                secretKeyRef:
+                  name: retroboard-psql-app
+                  key: host
             - name: DB_PORT
-              value: "5432"
+              valueFrom:
+                secretKeyRef:
+                  name: retroboard-psql-app
+                  key: port
             - name: DB_NAME
-              value: retroboard
+              value: "retroboard"
             - name: DB_USER
-              value: postgres
+              value: "retroboard-owner"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: retroboard-api-postgresql
-                  key: postgres-password
+                  name: "retroboard-owner"
+                  key: password
             - name: NODE_ENV
               value: "production"
           resources:
@@ -271,7 +289,7 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-  backoffLimit: 3
+  backoffLimit: 5
 ---
 # Source: retroboard-api/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -306,17 +324,43 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: retroboard-db
+  name: retroboard-psql
 spec:
   instances: 1
   storage:
     size: 20Gi
+  managed:
+    roles:
+      - name: "retroboard"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "retroboard"
+      - name: "retroboard-owner"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "retroboard-owner"
 ---
-# Source: retroboard-api/templates/environments-secret.yaml
+# Source: retroboard-api/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: retroboard-db
+spec:
+  name: "retroboard"
+  owner: "retroboard-owner"
+  cluster:
+    name: retroboard-psql
+  extensions:
+    - name: uuid-ossp
+      ensure: present
+---
+# Source: retroboard-api/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: retroboard-api-config
+  name: retroboard-api-envs-secrets
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -329,17 +373,24 @@ spec:
     name: secrets
     kind: ClusterSecretStore
   target:
-    name: retroboard-api-config
+    name: retroboard-api-envs-secrets
     creationPolicy: Owner
+    template:
+      data:
+        
+        DB_PASSWORD: '{{ .retroboardDbUserPassword }}'
+        GOOGLE_CLIENT_ID: '{{ .googleClientId }}'
+        GOOGLE_CLIENT_SECRET: '{{ .googleClientSecret }}'
+        JWT_SECRET: '{{ .jwtSecret }}'
   dataFrom:
     - extract:
-        key: retroboard-api
+        key: "dev-retroboard-api"
 ---
-# Source: retroboard-api/templates/postgres-password.yaml
+# Source: retroboard-api/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: retroboard-api-db-secret
+  name: retroboard-api-owner-user
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -347,16 +398,49 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
-  refreshInterval: 1h
+  refreshInterval: 15s
   secretStoreRef:
     name: secrets
     kind: ClusterSecretStore
   target:
-    name: retroboard-api-postgresql
+    name: "retroboard-owner"
     creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "retroboard-owner"
+        password: "{{ .retroboardDbOwnerUserPassword }}"
   dataFrom:
     - extract:
-        key:  retroboard-api-postgres
+        key: "dev-retroboard-api"
+---
+# Source: retroboard-api/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: retroboard-api-user
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "retroboard"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "retroboard"
+        password: "{{ .retroboardDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: "dev-retroboard-api"
 ---
 # Source: retroboard-api/templates/service-monitor.yaml
 apiVersion: operator.victoriametrics.com/v1beta1
