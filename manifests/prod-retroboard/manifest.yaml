@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard:main-07d074d"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-3ea178d"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -177,7 +177,7 @@ metadata:
 spec:
   ingressClassName: external
   rules:
-    - host: "retroboard-prod.zengarden.space"
+    - host: "retroboard.zengarden.space"
       http:
         paths:
           - path: /
