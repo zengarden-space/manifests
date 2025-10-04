@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-694a34e --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-7835c3b --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-694a34e"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-7835c3b"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -134,7 +134,7 @@ spec:
               protocol: TCP
           env:
             - name: "CORS_ORIGIN"
-              value: "https://retroboard.dev.zengarden.space"
+              value: "https://retroboard-dev.zengarden.space"
             - name: "DB_HOST"
               value: "retroboard-psql-rw"
             - name: "DB_NAME"
@@ -191,7 +191,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-694a34e
+  name: retroboard-api-migration-main-7835c3b
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -257,7 +257,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-694a34e"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-7835c3b"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -309,7 +309,7 @@ metadata:
 spec:
   ingressClassName: external
   rules:
-    - host: "retroboard.dev.zengarden.space"
+    - host: "retroboard-dev.zengarden.space"
       http:
         paths:
           - path: /api
