@@ -26,7 +26,7 @@ spec:
   type: ClusterIP
   ports:
     - port: 80
-      targetPort: 8080
+      targetPort: 5173
       protocol: TCP
       name: http
   selector:
@@ -71,11 +71,11 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard:main-0088c8f"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-3a718a1"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 5173
               protocol: TCP
           livenessProbe:
             failureThreshold: 3
