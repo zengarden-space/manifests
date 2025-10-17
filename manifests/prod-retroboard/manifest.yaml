@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard:main-36d127c"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-fc195e8"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -143,8 +143,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: retroboard
-  minReplicas: 1
-  maxReplicas: 1
+  minReplicas: 2
+  maxReplicas: 10
   metrics:
     - type: Resource
       resource:
