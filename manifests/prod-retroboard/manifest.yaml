@@ -143,8 +143,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: retroboard
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 1
   metrics:
     - type: Resource
       resource:
