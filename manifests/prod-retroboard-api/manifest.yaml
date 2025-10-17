@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-15426ce --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-4cf2e35 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-15426ce"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-4cf2e35"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -134,11 +134,11 @@ spec:
               protocol: TCP
           env:
             - name: "COOKIE_DOMAIN"
-              value: "retroboard.zengarden.space"
+              value: "effective-retro.com"
             - name: "COOKIE_SECURE"
               value: "true"
             - name: "CORS_ORIGIN"
-              value: "https://retroboard.zengarden.space"
+              value: "https://effective-retro.com"
             - name: "DB_HOST"
               value: "retroboard-psql-rw"
             - name: "DB_NAME"
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-15426ce
+  name: retroboard-api-migration-main-4cf2e35
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-15426ce"
+          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-4cf2e35"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -313,7 +313,7 @@ metadata:
 spec:
   ingressClassName: external
   rules:
-    - host: "retroboard.zengarden.space"
+    - host: "effective-retro.com"
       http:
         paths:
           - path: /api
