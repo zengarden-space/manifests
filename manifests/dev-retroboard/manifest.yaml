@@ -71,12 +71,13 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard:main-dc17d05"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-13b6b99"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 5173
               protocol: TCP
+          env:
           livenessProbe:
             failureThreshold: 3
             httpGet:
