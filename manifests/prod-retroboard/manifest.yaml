@@ -71,12 +71,15 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard:main-dc17d05"
+          image: "gitea.zengarden.space/zengarden-space/retroboard:main-13b6b99"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 5173
               protocol: TCP
+          env:
+            - name: "TRUST_PROXY_IP_RANGE"
+              value: "10.0.0.0/16"
           livenessProbe:
             failureThreshold: 3
             httpGet:
