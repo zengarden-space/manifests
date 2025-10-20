@@ -117,7 +117,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-c7eaf7d"
+          image: "gitea.zengarden.space/zengarden-space/secret-editor:main-c4c960a"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -172,10 +172,10 @@ spec:
   ingressClassName: internal
   tls:
     - hosts:
-        - "secrets.dev.zengarden.space"
+        - "secrets.homelab.int.zengarden.space"
       secretName: secrets-tls
   rules:
-    - host: "secrets.dev.zengarden.space"
+    - host: "secrets.hemelab.int.zengarden.space"
       http:
         paths:
           - path: /
