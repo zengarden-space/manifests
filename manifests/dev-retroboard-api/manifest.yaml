@@ -100,14 +100,14 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: wait-for-migration
-          image: gitea.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
           command:
             - /bin/bash
             - -c
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-9843b75 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-17f69a6 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-9843b75"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-17f69a6"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -134,11 +134,11 @@ spec:
               protocol: TCP
           env:
             - name: "COOKIE_DOMAIN"
-              value: "retroboard-dev.zengarden.space"
+              value: "retroboard.zengarden.space"
             - name: "COOKIE_SECURE"
               value: "true"
             - name: "CORS_ORIGIN"
-              value: "https://retroboard-dev.zengarden.space"
+              value: "https://retroboard.zengarden.space"
             - name: "DB_HOST"
               value: "retroboard-psql-rw"
             - name: "DB_NAME"
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-9843b75
+  name: retroboard-api-migration-main-17f69a6
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -228,7 +228,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: gitea.zengarden.space/zengarden-space/external-images/postgres:15-alpine
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/postgres:15-alpine
           command:
             - sh
             - -c
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-9843b75"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-17f69a6"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -313,7 +313,7 @@ metadata:
 spec:
   ingressClassName: external
   rules:
-    - host: "retroboard-dev.zengarden.space"
+    - host: "retroboard.zengarden.space"
       http:
         paths:
           - path: /api
