@@ -100,14 +100,14 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: wait-for-migration
-          image: gitea.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
           command:
             - /bin/bash
             - -c
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-d180f78 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-5d49dae --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-d180f78"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-5d49dae"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -201,7 +201,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-d180f78
+  name: retroboard-api-migration-main-5d49dae
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -234,7 +234,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: gitea.zengarden.space/zengarden-space/external-images/postgres:15-alpine
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/postgres:15-alpine
           command:
             - sh
             - -c
@@ -267,7 +267,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.zengarden.space/zengarden-space/retroboard-api:main-d180f78"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-5d49dae"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
