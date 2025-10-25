@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-921670e --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-main-a1bb643 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-921670e"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-a1bb643"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -201,7 +201,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-921670e
+  name: retroboard-api-migration-main-a1bb643
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -267,7 +267,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-921670e"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-a1bb643"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -366,6 +366,17 @@ spec:
     - name: uuid-ossp
       ensure: present
 ---
+# Source: retroboard-api/templates/derived-secret.yaml
+apiVersion: zengarden.space/v1
+kind: DerivedSecret
+metadata:
+  name: prod-retroboard-api-derived
+  namespace: secrets
+spec:
+  retroboardDbUserPassword: 22
+  retroboardDbOwnerUserPassword: 22
+  jwtSecret: 43
+---
 # Source: retroboard-api/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -395,6 +406,8 @@ spec:
   dataFrom:
     - extract:
         key: "prod-retroboard-api"
+    - extract:
+        key: prod-retroboard-api-derived
 ---
 # Source: retroboard-api/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
@@ -422,7 +435,7 @@ spec:
         password: "{{ .retroboardDbOwnerUserPassword }}"
   dataFrom:
     - extract:
-        key: "prod-retroboard-api"
+        key: prod-retroboard-api-derived
 ---
 # Source: retroboard-api/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
@@ -450,7 +463,7 @@ spec:
         password: "{{ .retroboardDbUserPassword }}"
   dataFrom:
     - extract:
-        key: "prod-retroboard-api"
+        key: prod-retroboard-api-derived
 ---
 # Source: retroboard-api/templates/service-monitor.yaml
 apiVersion: operator.victoriametrics.com/v1beta1
