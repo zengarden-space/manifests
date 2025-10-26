@@ -1,0 +1,147 @@
+---
+# Source: docs/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: docs
+  labels:
+    helm.sh/chart: docs-0.1.0
+    app.kubernetes.io/name: docs
+    app.kubernetes.io/instance: docs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: docs/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: docs
+  labels:
+    helm.sh/chart: docs-0.1.0
+    app.kubernetes.io/name: docs
+    app.kubernetes.io/instance: docs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: docs
+    app.kubernetes.io/instance: docs
+---
+# Source: docs/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docs
+  labels:
+    helm.sh/chart: docs-0.1.0
+    app.kubernetes.io/name: docs
+    app.kubernetes.io/instance: docs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docs
+      app.kubernetes.io/instance: docs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: docs
+        app.kubernetes.io/instance: docs
+    spec:
+      serviceAccountName: docs
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: docs
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/homelab/docs:main-d166b8c"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: "NODE_ENV"
+              value: "production"
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - docs
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: docs/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: docs
+  labels:
+    helm.sh/chart: docs-0.1.0
+    app.kubernetes.io/name: docs
+    app.kubernetes.io/instance: docs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: external
+  rules:
+    - host: "homelab.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: docs
+                port:
+                  number: 80
