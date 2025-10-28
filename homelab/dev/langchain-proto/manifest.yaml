@@ -72,7 +72,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "langchain-proto:sha-4a39f5a"
+          image: "langchain-proto:sha-c456b3c"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
