@@ -11,6 +11,27 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 ---
+# Source: langchain-proto/templates/ollama-external.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: dev-langchain-proto
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ExternalName
+  externalName: 192.168.88.16
+  ports:
+  - port: 11434
+    targetPort: 11434
+    protocol: TCP
+    name: http
+---
 # Source: langchain-proto/templates/service.yaml
 apiVersion: v1
 kind: Service
@@ -72,7 +93,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-fc3b263"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-edea0fc"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -88,7 +109,7 @@ spec:
             - name: "OPENAI_API_KEY"
               value: "ollama"
             - name: "OPENAI_BASE_URL"
-              value: "http://ollama.ai.svc.cluster.local:11434/v1"
+              value: "http://ollama:11434/v1"
             - name: "OPENAI_TIMEOUT_MS"
               value: "60000"
             - name: "PORT"
@@ -162,7 +183,7 @@ metadata:
 spec:
   instances: 1
 
-  imageName: pgvector/pgvector:pg17
+  imageName: ghcr.io/cloudnative-pg/postgresql:17-standard
 
   storage:
     size: 20Gi
