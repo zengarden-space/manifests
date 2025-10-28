@@ -11,10 +11,10 @@ spec:
         repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
         revision: main
         directories:
-        - path: "manifests/*"
+        - path: "manifests/*/*/*"
   template:
     metadata:
-      name: '{{.path.basename}}'
+      name: '{{index (.path.segments) 1}}.{{index (.path.segments) 2}}.{{.path.basename}}'
     spec:
       project: default
       syncPolicy:
@@ -30,4 +30,4 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: '{{.url}}'
-        namespace: '{{.path.basenameNormalized}}'
+        namespace: '{{index (.path.segments) 2}}-{{.path.basenameNormalized}}'
