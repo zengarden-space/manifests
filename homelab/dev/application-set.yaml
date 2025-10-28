@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: applications
+  name: hemelab-dev-applications
   namespace: argocd
 spec:
   goTemplate: true
@@ -11,10 +11,10 @@ spec:
         repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
         revision: main
         directories:
-        - path: "manifests/*/*/*"
+        - path: "manifests/homelab/dev/*"
   template:
     metadata:
-      name: '{{index (.path.segments) 1}}.{{index (.path.segments) 2}}.{{.path.basename}}'
+      name: 'hemelab.dev.{{.path.basename}}'
     spec:
       project: default
       syncPolicy:
@@ -30,4 +30,4 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: '{{.url}}'
-        namespace: '{{index (.path.segments) 2}}-{{.path.basenameNormalized}}'
+        namespace: 'dev-{{.path.basenameNormalized}}'

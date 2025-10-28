@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: hemelab-prod-applications
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
+        revision: main
+        directories:
+        - path: "manifests/homelab/prod/*"
+  template:
+    metadata:
+      name: 'hemelab.prod.{{.path.basename}}'
+    spec:
+      project: default
+      syncPolicy:
+        automated:
+          prune: true
+          allowEmpty: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+      source:
+        repoURL: https://gitea.zengarden.space/zengarden-space/manifests.git
+        targetRevision: main
+        path: '{{.path.path}}'
+      destination:
+        server: '{{.url}}'
+        namespace: 'prod-{{.path.basenameNormalized}}'
