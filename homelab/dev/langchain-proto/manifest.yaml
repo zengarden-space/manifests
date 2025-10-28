@@ -1,0 +1,359 @@
+---
+# Source: langchain-proto/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: langchain-proto
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: langchain-proto/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: langchain-proto
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+---
+# Source: langchain-proto/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langchain-proto
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: langchain-proto
+      app.kubernetes.io/instance: langchain-proto
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: langchain-proto
+        app.kubernetes.io/instance: langchain-proto
+    spec:
+      serviceAccountName: langchain-proto
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: langchain-proto
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "langchain-proto:sha-4a39f5a"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: "CHAT_MODEL"
+              value: "llama3.1:8b"
+            - name: "EMBED_MODEL"
+              value: "nomic-embed-text"
+            - name: "NODE_ENV"
+              value: "production"
+            - name: "OPENAI_API_KEY"
+              value: "ollama"
+            - name: "OPENAI_BASE_URL"
+              value: "http://ollama.ai.svc.cluster.local:11434/v1"
+            - name: "OPENAI_TIMEOUT_MS"
+              value: "60000"
+            - name: "PORT"
+              value: "8080"
+            - name: "VECTOR_TABLE"
+              value: "langchain_pg_embedding"
+            # CNPG-based PostgreSQL
+            - name: POSTGRES_HOST
+              value: "langchain-proto-psql-rw"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: 
+            - name: POSTGRES_USER
+              value: 
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: langchain-proto-psql-app
+                  key: password
+          envFrom:
+            - secretRef:
+                name: langchain-proto-envs-secrets
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 150m
+              memory: 256Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - langchain-proto
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: langchain-proto/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: langchain-proto-psql
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  instances: 1
+
+  imageName: pgvector/pgvector:pg17
+
+  storage:
+    size: 20Gi
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      maintenance_work_mem: "64MB"
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+
+    pg_hba:
+      - host all all all scram-sha-256
+
+  managed:
+    roles:
+      - name: 
+        ensure: present
+        login: true
+        passwordSecret:
+          name: langchain-proto-psql-app
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+  monitoring:
+    enablePodMonitor: true
+---
+# Source: langchain-proto/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: langchain-proto-db
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  name: 
+  owner: 
+  cluster:
+    name: langchain-proto-psql
+  extensions:
+    - name: vector
+      ensure: present
+---
+# Source: langchain-proto/templates/derived-secret.yaml
+apiVersion: zengarden.space/v1
+kind: DerivedSecret
+metadata:
+  name: dev-langchain-proto-derived
+  namespace: secrets
+spec:
+  langchainDbUserPassword: 22
+  langchainDbSuperuserPassword: 22
+---
+# Source: langchain-proto/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: langchain-proto-envs-secrets
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 5s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: langchain-proto-envs-secrets
+    creationPolicy: Owner
+    template:
+      data:
+  dataFrom:
+    - extract:
+        key: "dev-langchain-proto"
+    - extract:
+        key: dev-langchain-proto-derived
+---
+# Source: langchain-proto/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: langchain-proto-psql-superuser
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 5s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: langchain-proto-psql-superuser
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "postgres"
+        password: "{{ .langchainDbSuperuserPassword }}"
+  dataFrom:
+    - extract:
+        key: dev-langchain-proto-derived
+---
+# Source: langchain-proto/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: langchain-proto-psql-app
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 5s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: langchain-proto-psql-app
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: 
+        password: "{{ .langchainDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: dev-langchain-proto-derived
+---
+# Source: langchain-proto/templates/psql-podmonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: langchain-proto-psql
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      postgresql: langchain-proto-psql
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+---
+# Source: langchain-proto/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: langchain-proto
+  labels:
+    helm.sh/chart: langchain-proto-0.1.0
+    app.kubernetes.io/name: langchain-proto
+    app.kubernetes.io/instance: langchain-proto
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: langchain-proto
+      app.kubernetes.io/instance: langchain-proto
+  endpoints:
+  - port: http
+    path: /api/metrics
+    interval: 30s
