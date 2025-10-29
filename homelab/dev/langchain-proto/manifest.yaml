@@ -93,7 +93,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-e6e3e53"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-22725a2"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -183,7 +183,7 @@ metadata:
 spec:
   instances: 1
 
-  imageName: pgvector/pgvector:0.8.1-pg18-trixie
+  imageName: gitea.homelab.int.zengarden.space/zengarden-space/external-images/pg-vector:18.0
 
   storage:
     size: 20Gi
