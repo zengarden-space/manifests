@@ -16,7 +16,7 @@ spec:
     metadata:
       name: 'hemelab.prod.{{.path.basename}}'
     spec:
-      project: default
+      project: apps
       syncPolicy:
         automated:
           prune: true
