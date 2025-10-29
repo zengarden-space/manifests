@@ -93,7 +93,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-22725a2"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-aae8a91"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -124,7 +124,7 @@ spec:
             - name: POSTGRES_DB
               value: 
             - name: POSTGRES_USER
-              value: 
+              value: "langchain"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -208,7 +208,7 @@ spec:
 
   managed:
     roles:
-      - name: 
+      - name: "langchain"
         ensure: present
         login: true
         passwordSecret:
@@ -238,7 +238,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   name: 
-  owner: 
+  owner: "langchain"
   cluster:
     name: langchain-proto-psql
   extensions:
@@ -332,7 +332,7 @@ spec:
     template:
       type: kubernetes.io/basic-auth
       data:
-        username: 
+        username: "langchain"
         password: "{{ .langchainDbUserPassword }}"
   dataFrom:
     - extract:
