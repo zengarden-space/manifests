@@ -98,6 +98,24 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-migration
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -eoux pipefail
+              echo "Waiting for migration job to complete..."
+              kubectl wait --for=condition=complete job/hello-world3-migration-sha-18992dc --timeout=300s
+              echo "Migration job completed successfully"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
       containers:
         - name: hello-world3
           securityContext:
@@ -108,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/hello-world3:sha-f7fa492"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/hello-world3:sha-18992dc"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -166,6 +184,96 @@ spec:
                   - hello-world3
               topologyKey: kubernetes.io/hostname
             weight: 100
+---
+# Source: hello-world3/templates/migration-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello-world3-migration-sha-18992dc
+  labels:
+    helm.sh/chart: hello-world3-0.1.0
+    app.kubernetes.io/name: hello-world3
+    app.kubernetes.io/instance: hello-world3
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: migration
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hello-world3
+        app.kubernetes.io/instance: hello-world3
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: hello-world3
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-db
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
+                echo "Waiting for PostgreSQL to be ready..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: DB_HOST
+              value: "hello-world3-psql-rw"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "helloworld3-owner"
+      containers:
+        - name: migration
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/hello-world3:sha-18992dc"
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/app/scripts/migrate.sh"]
+          env:
+            - name: DB_HOST
+              value: "hello-world3-psql-rw"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "helloworld3"
+            - name: DB_USER
+              value: "helloworld3-owner"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "helloworld3-owner"
+                  key: password
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+  backoffLimit: 5
 ---
 # Source: hello-world3/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
