@@ -93,7 +93,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-edea0fc"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/langchain-proto:sha-e6e3e53"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -183,7 +183,7 @@ metadata:
 spec:
   instances: 1
 
-  imageName: ghcr.io/cloudnative-pg/postgresql:17-standard
+  imageName: pgvector/pgvector:0.8.1-pg18-trixie
 
   storage:
     size: 20Gi
