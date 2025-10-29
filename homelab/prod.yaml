@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: hemelab-prod-applications
+  name: homelab-prod-applications
   namespace: argocd
 spec:
   goTemplate: true
@@ -14,7 +14,7 @@ spec:
         - path: "homelab/prod/*"
   template:
     metadata:
-      name: 'hemelab.prod.{{.path.basename}}'
+      name: 'homelab.prod.{{.path.basename}}'
     spec:
       project: apps
       syncPolicy:
