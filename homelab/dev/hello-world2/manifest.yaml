@@ -1,0 +1,200 @@
+---
+# Source: hello-world2/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hello-world2
+  labels:
+    helm.sh/chart: hello-world2-0.1.0
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: hello-world2/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hello-world2-job-watcher
+  labels:
+    helm.sh/chart: hello-world2-0.1.0
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+---
+# Source: hello-world2/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hello-world2-job-watcher
+  labels:
+    helm.sh/chart: hello-world2-0.1.0
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+- kind: ServiceAccount
+  name: hello-world2
+  namespace: dev-hello-world2
+roleRef:
+  kind: Role
+  name: hello-world2-job-watcher
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: hello-world2/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world2
+  labels:
+    helm.sh/chart: hello-world2-0.1.0
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+---
+# Source: hello-world2/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world2
+  labels:
+    helm.sh/chart: hello-world2-0.1.0
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hello-world2
+      app.kubernetes.io/instance: hello-world2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hello-world2
+        app.kubernetes.io/instance: hello-world2
+    spec:
+      serviceAccountName: hello-world2
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: hello-world2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/hello-world2:sha-4a48fa0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - hello-world2
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: hello-world2/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-world2
+  labels:
+    helm.sh/chart: hello-world2-0.1.0
+    app.kubernetes.io/name: hello-world2
+    app.kubernetes.io/instance: hello-world2
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "hello-world2.homelab.int.zengarden.space"
+      secretName: hello-world2-tls
+  rules:
+    - host: "hello-world2.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-world2
+                port:
+                  number: 80
+---
+# Source: hello-world2/templates/service-monitor.yaml
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: hello-world2
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hello-world2
+      app.kubernetes.io/instance: hello-world2
+  endpoints:
+    - port: http
+      interval: 15s
+      path: /metrics
+      scrapeTimeout: 10s
