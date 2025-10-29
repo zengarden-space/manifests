@@ -108,7 +108,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/hello-world:sha-84ed53f"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/hello-world:sha-cbd12fc"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -167,6 +167,10 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: internal
+  tls:
+    - hosts:
+        - "hello-world.homelab.int.zengarden.space"
+      secretName: hello-world-tls
   rules:
     - host: "hello-world.homelab.int.zengarden.space"
       http:
