@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-main-03c9884 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-7159b30 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-03c9884"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-7159b30"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -201,7 +201,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-main-03c9884
+  name: retroboard-api-migration-sha-7159b30
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -267,7 +267,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:main-03c9884"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-7159b30"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
