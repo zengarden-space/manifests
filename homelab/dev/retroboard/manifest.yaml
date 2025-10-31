@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard:sha-3842eef"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard:sha-8b177aa"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -175,8 +175,13 @@ metadata:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: internal
+  tls:
+    - hosts:
+        - "retroboard.homelab.int.zengarden.space"
+      secretName: retroboard-homelab-tls
   rules:
     - host: "retroboard.homelab.int.zengarden.space"
       http:
