@@ -72,7 +72,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/homelab/docs:main-e1294ba"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/homelab/docs:main-638d0bb"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
