@@ -11,10 +11,10 @@ spec:
         repoURL: https://gitea.homelab.int.zengarden.space/zengarden-space/manifests.git
         revision: main
         directories:
-        - path: "homelab/ci/*/*"
+        - path: "homelab/ci-*/*"
   template:
     metadata:
-      name: 'homelab.ci.{{ index .path.segments 2 }}.{{.path.basename}}'
+      name: 'homelab.{{.path.basename}}.{{ .path.segments 1 }}'
     spec:
       project: apps
       syncPolicy:
@@ -30,4 +30,4 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: 'ci-{{ index .path.segments 2 }}-{{.path.basenameNormalized}}'
+        namespace: '{{ .path.segments 1 }}-{{.path.basenameNormalized}}'
