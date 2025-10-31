@@ -131,7 +131,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/practical-app-backend-migration-sha-55e04b0 --timeout=300s
+              kubectl wait --for=condition=complete job/practical-app-backend-migration-sha-c05209b --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -150,7 +150,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-55e04b0"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-c05209b"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -285,7 +285,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: practical-app-backend-migration-sha-55e04b0
+  name: practical-app-backend-migration-sha-c05209b
   labels:
     helm.sh/chart: practical-app-backend-0.1.0
     app.kubernetes.io/name: practical-app-backend
@@ -330,15 +330,9 @@ spec:
               echo "PostgreSQL is ready!"
           env:
             - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: example-microservice-psql-app
-                  key: host
+              value: "practical-app-backend-psql-rw"
             - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: example-microservice-psql-app
-                  key: port
+              value: "5432"
             - name: DB_USER
               value: "practical-app-owner"
       containers:
@@ -351,20 +345,14 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-55e04b0"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-c05209b"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
             - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: example-microservice-psql-app
-                  key: host
+              value: "practical-app-backend-psql-rw"
             - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: example-microservice-psql-app
-                  key: port
+              value: "5432"
             - name: DB_NAME
               value: "practical_app"
             - name: DB_USER
