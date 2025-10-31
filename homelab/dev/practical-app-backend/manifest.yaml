@@ -131,7 +131,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/practical-app-backend-migration-sha-c05209b --timeout=300s
+              kubectl wait --for=condition=complete job/practical-app-backend-migration-sha-b63f079 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -150,7 +150,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-c05209b"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-b63f079"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -285,7 +285,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: practical-app-backend-migration-sha-c05209b
+  name: practical-app-backend-migration-sha-b63f079
   labels:
     helm.sh/chart: practical-app-backend-0.1.0
     app.kubernetes.io/name: practical-app-backend
@@ -345,7 +345,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-c05209b"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-b63f079"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
