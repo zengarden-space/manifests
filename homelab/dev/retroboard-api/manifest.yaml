@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-3eed45c --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-1e22022 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-3eed45c"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-1e22022"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-3eed45c
+  name: retroboard-api-migration-sha-1e22022
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-3eed45c"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-1e22022"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -310,8 +310,13 @@ metadata:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: internal
+  tls:
+    - hosts:
+        - "retroboard.homelab.int.zengarden.space"
+      secretName: retroboard-homelab-tls
   rules:
     - host: "retroboard.homelab.int.zengarden.space"
       http:
