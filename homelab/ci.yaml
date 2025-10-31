@@ -14,7 +14,7 @@ spec:
         - path: "homelab/ci-*/*"
   template:
     metadata:
-      name: 'homelab.{{.path.basename}}.{{ .path.segments 1 }}'
+      name: 'homelab.{{.path.basename}}.{{ index .path.segments 1 }}'
     spec:
       project: apps
       syncPolicy:
@@ -30,4 +30,4 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{ .path.segments 1 }}-{{.path.basenameNormalized}}'
+        namespace: '{{ index .path.segments 1 }}-{{.path.basenameNormalized}}'
