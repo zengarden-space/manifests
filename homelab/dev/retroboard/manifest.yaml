@@ -71,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard:sha-8dd3707"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard:sha-8063469"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -176,9 +176,9 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
-  ingressClassName: external
+  ingressClassName: internal
   rules:
-    - host: "retroboard.zengarden.space"
+    - host: "retroboard.dev.homelab.int.zengarden.space"
       http:
         paths:
           - path: /
