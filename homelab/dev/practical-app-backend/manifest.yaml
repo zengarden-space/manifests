@@ -1,0 +1,570 @@
+---
+# Source: practical-app-backend/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: practical-app-backend
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: practical-app-backend/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: practical-app-backend-job-watcher
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+---
+# Source: practical-app-backend/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: practical-app-backend-job-watcher
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+- kind: ServiceAccount
+  name: practical-app-backend
+  namespace: dev-practical-app-backend
+roleRef:
+  kind: Role
+  name: practical-app-backend-job-watcher
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: practical-app-backend/templates/redis.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: practical-app-backend-redis
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  selector:
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/component: redis
+---
+# Source: practical-app-backend/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: practical-app-backend
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+---
+# Source: practical-app-backend/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: practical-app-backend
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: practical-app-backend
+      app.kubernetes.io/instance: practical-app-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: practical-app-backend
+        app.kubernetes.io/instance: practical-app-backend
+    spec:
+      serviceAccountName: practical-app-backend
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-migration
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -eoux pipefail 
+              echo "Waiting for migration job to complete..."
+              kubectl wait --for=condition=complete job/practical-app-backend-migration-sha-45ae065 --timeout=300s
+              echo "Migration job completed successfully"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+      containers:
+        - name: practical-app-backend
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-45ae065"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          env:
+            - name: "CORS_ORIGIN"
+              value: "http://practical-app-frontend.homelab.int.zengarden.space"
+            - name: "LOG_LEVEL"
+              value: "debug"
+            - name: "NODE_ENV"
+              value: "development"
+            - name: "PORT"
+              value: "3001"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "practical_app"
+                  key: password
+          envFrom:
+            - secretRef:
+                name: practical-app-backend-envs-secrets
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - practical-app-backend
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: practical-app-backend/templates/redis.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: practical-app-backend-redis
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: practical-app-backend
+      app.kubernetes.io/instance: practical-app-backend
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: practical-app-backend
+        app.kubernetes.io/instance: practical-app-backend
+        app.kubernetes.io/component: redis
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 999
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+# Source: practical-app-backend/templates/migration-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: practical-app-backend-migration-sha-45ae065
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: migration
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: practical-app-backend
+        app.kubernetes.io/instance: practical-app-backend
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: practical-app-backend
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-db
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
+                echo "Waiting for PostgreSQL to be ready..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: example-microservice-psql-app
+                  key: host
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: example-microservice-psql-app
+                  key: port
+            - name: DB_USER
+              value: "practical_app_owner"
+      containers:
+        - name: migration
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-backend:sha-45ae065"
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/scripts/migrate.js", "up"]
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: example-microservice-psql-app
+                  key: host
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: example-microservice-psql-app
+                  key: port
+            - name: DB_NAME
+              value: "practical_app"
+            - name: DB_USER
+              value: "practical_app_owner"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "practical_app_owner"
+                  key: password
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+  backoffLimit: 5
+---
+# Source: practical-app-backend/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: practical-app-backend
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "practical-app-backend.homelab.int.zengarden.space"
+      secretName: practical-app-backend-tls
+  rules:
+    - host: "practical-app-backend.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: practical-app-backend
+                port:
+                  number: 80
+---
+# Source: practical-app-backend/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: practical-app-backend-psql
+spec:
+  instances: 1
+  storage:
+    size: 20Gi
+  managed:
+    roles:
+      - name: "practical_app"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "practical_app"
+      - name: "practical_app_owner"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "practical_app_owner"
+---
+# Source: practical-app-backend/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: practical-app-backend-db
+spec:
+  name: "practical_app"
+  owner: "practical_app_owner"
+  cluster:
+    name: practical-app-backend-psql
+  extensions:
+    - name: uuid-ossp
+      ensure: present
+---
+# Source: practical-app-backend/templates/derived-secret.yaml
+apiVersion: zengarden.space/v1
+kind: DerivedSecret
+metadata:
+  name: dev-practical-app-backend-derived
+  namespace: secrets
+spec:
+  practicalAppDbUserPassword: 22
+  practicalAppDbOwnerUserPassword: 22
+  practicalAppDbUrl: 64
+  practicalAppRedisUrl: 64
+---
+# Source: practical-app-backend/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: practical-app-backend-envs-secrets
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: practical-app-backend-envs-secrets
+    creationPolicy: Owner
+    template:
+      data:
+        
+        DATABASE_URL: '{{ .practicalAppDbUrl }}'
+        REDIS_URL: '{{ .practicalAppRedisUrl }}'
+  dataFrom:
+    - extract:
+        key: "dev-practical-app-backend"
+    - extract:
+        key: dev-practical-app-backend-derived
+---
+# Source: practical-app-backend/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: practical-app-backend-owner-user
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "practical_app_owner"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "practical_app_owner"
+        password: "{{ .exampleMicroserviceDbOwnerUserPassword }}"
+  dataFrom:
+    - extract:
+        key: dev-practical-app-backend-derived
+---
+# Source: practical-app-backend/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: practical-app-backend-user
+  labels:
+    helm.sh/chart: practical-app-backend-0.1.0
+    app.kubernetes.io/name: practical-app-backend
+    app.kubernetes.io/instance: practical-app-backend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "practical_app"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "practical_app"
+        password: "{{ .exampleMicroserviceDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: dev-practical-app-backend-derived
+---
+# Source: practical-app-backend/templates/service-monitor.yaml
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: practical-app-backend
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: practical-app-backend
+      app.kubernetes.io/instance: practical-app-backend
+  endpoints:
+    - port: http
+      interval: 15s
+      path: /metrics
+      scrapeTimeout: 10s
