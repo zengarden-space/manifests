@@ -42,6 +42,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: retroboard-api
+  namespace: dev-retroboard-api
 roleRef:
   kind: Role
   name: retroboard-api-job-watcher
@@ -102,24 +103,16 @@ spec:
         command:
         - /bin/bash
         - -c
-        - 'set -eoux pipefail
-
-          echo "Waiting for migration job to complete..."
-
-          kubectl wait --for=condition=complete job/retroboard-api-migration-sha-4d8827a
-          --timeout=300s
-
-          echo "Migration job completed successfully"
-
-          '
+        - "set -eoux pipefail \necho \"Waiting for migration job to complete...\"\n\
+          kubectl wait --for=condition=complete job/retroboard-api-migration-sha-c9b827b\
+          \ --timeout=300s\necho \"Migration job completed successfully\"\n"
         securityContext:
           runAsNonRoot: true
-          runAsUser: 65534
+          runAsUser: 1001
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
-          readOnlyRootFilesystem: true
       containers:
       - name: retroboard-api
         securityContext:
@@ -130,7 +123,7 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
-        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-4d8827a
+        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-c9b827b
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -198,7 +191,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-4d8827a
+  name: retroboard-api-migration-sha-c9b827b
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +254,7 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
-        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-4d8827a
+        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-c9b827b
         imagePullPolicy: IfNotPresent
         command:
         - node
