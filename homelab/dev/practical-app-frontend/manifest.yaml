@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-e95d094 --timeout=300s
+              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-b63f079 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-e95d094"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-b63f079"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -229,64 +229,6 @@ spec:
   dataFrom:
     - extract:
         key: "dev-practical-app-frontend"
-    - extract:
-        key: dev-practical-app-frontend-derived
----
-# Source: practical-app-frontend/templates/external-secrets.yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: practical-app-frontend-owner-user
-  labels:
-    helm.sh/chart: practical-app-frontend-0.1.0
-    app.kubernetes.io/name: practical-app-frontend
-    app.kubernetes.io/instance: practical-app-frontend
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  refreshInterval: 15s
-  secretStoreRef:
-    name: secrets
-    kind: ClusterSecretStore
-  target:
-    name: 
-    creationPolicy: Owner
-    template:
-      type: kubernetes.io/basic-auth
-      data:
-        username: 
-        password: "{{ .exampleMicroserviceDbOwnerUserPassword }}"
-  dataFrom:
-    - extract:
-        key: dev-practical-app-frontend-derived
----
-# Source: practical-app-frontend/templates/external-secrets.yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: practical-app-frontend-user
-  labels:
-    helm.sh/chart: practical-app-frontend-0.1.0
-    app.kubernetes.io/name: practical-app-frontend
-    app.kubernetes.io/instance: practical-app-frontend
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  refreshInterval: 15s
-  secretStoreRef:
-    name: secrets
-    kind: ClusterSecretStore
-  target:
-    name: 
-    creationPolicy: Owner
-    template:
-      type: kubernetes.io/basic-auth
-      data:
-        username: 
-        password: "{{ .exampleMicroserviceDbUserPassword }}"
-  dataFrom:
-    - extract:
-        key: dev-practical-app-frontend-derived
 ---
 # Source: practical-app-frontend/templates/service-monitor.yaml
 apiVersion: operator.victoriametrics.com/v1beta1
