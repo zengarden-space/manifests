@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-b83b8bf --timeout=300s
+              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-e95d094 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-b83b8bf"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-e95d094"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -135,11 +135,6 @@ spec:
           env:
             - name: "NODE_ENV"
               value: "development"
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: 
-                  key: password
           envFrom:
             - secretRef:
                 name: practical-app-frontend-envs-secrets
