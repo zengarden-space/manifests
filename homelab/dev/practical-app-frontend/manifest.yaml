@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-45ae065 --timeout=300s
+              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-c05209b --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-45ae065"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-c05209b"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -195,13 +195,9 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
-  ingressClassName: internal
-  tls:
-    - hosts:
-        - "practical-app-frontend.homelab.int.zengarden.space"
-      secretName: practical-app-frontend-tls
+  ingressClassName: external
   rules:
-    - host: "practical-app-frontend.homelab.int.zengarden.space"
+    - host: "practical-app.zengarden.space"
       http:
         paths:
           - path: /
