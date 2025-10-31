@@ -107,7 +107,7 @@ spec:
             - |
               set -eoux pipefail 
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-1852573 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-d490f30 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-1852573"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-d490f30"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -134,11 +134,11 @@ spec:
               protocol: TCP
           env:
             - name: "COOKIE_DOMAIN"
-              value: "retroboard.zengarden.space"
+              value: "retroboard.dev.homelab.int.zengarden.space"
             - name: "COOKIE_SECURE"
               value: "true"
             - name: "CORS_ORIGIN"
-              value: "https://retroboard.zengarden.space"
+              value: "https://retroboard.dev.homelab.int.zengarden.space"
             - name: "DB_HOST"
               value: "retroboard-psql-rw"
             - name: "DB_NAME"
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-1852573
+  name: retroboard-api-migration-sha-d490f30
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-1852573"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-d490f30"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -311,9 +311,9 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
-  ingressClassName: external
+  ingressClassName: internal
   rules:
-    - host: "retroboard.zengarden.space"
+    - host: "retroboard.dev.homelab.int.zengarden.space"
       http:
         paths:
           - path: /api
