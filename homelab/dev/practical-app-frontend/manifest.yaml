@@ -98,24 +98,6 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: wait-for-migration
-          image: gitea.homelab.int.zengarden.space/zengarden-space/external-images/alpine-k8s:1.31.13
-          command:
-            - /bin/bash
-            - -c
-            - |
-              set -eoux pipefail 
-              echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/practical-app-frontend-migration-sha-3a1f7a9 --timeout=300s
-              echo "Migration job completed successfully"
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1001
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
       containers:
         - name: practical-app-frontend
           securityContext:
@@ -126,7 +108,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-3a1f7a9"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/practical-app-frontend:sha-24b7a04"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
