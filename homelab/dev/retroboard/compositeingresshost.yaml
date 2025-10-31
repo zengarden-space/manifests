@@ -5,6 +5,6 @@ metadata:
   name: retroboard-composite
   namespace: dev-retroboard
 spec:
-  baseHost: "retroboard.dev.homelab.int.zengarden.space"
+  baseHost: "retroboard.homelab.int.zengarden.space"
   hostPattern: "retroboard-*.homelab.int.zengarden.space"
   ingressClassName: "internal"
