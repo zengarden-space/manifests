@@ -42,7 +42,6 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: retroboard-api
-  namespace: dev-retroboard-api
 roleRef:
   kind: Role
   name: retroboard-api-job-watcher
@@ -103,16 +102,24 @@ spec:
         command:
         - /bin/bash
         - -c
-        - "set -eoux pipefail \necho \"Waiting for migration job to complete...\"\n\
-          kubectl wait --for=condition=complete job/retroboard-api-migration-sha-c9b827b\
-          \ --timeout=300s\necho \"Migration job completed successfully\"\n"
+        - 'set -eoux pipefail
+
+          echo "Waiting for migration job to complete..."
+
+          kubectl wait --for=condition=complete job/retroboard-api-migration-1-0-0
+          --timeout=300s
+
+          echo "Migration job completed successfully"
+
+          '
         securityContext:
           runAsNonRoot: true
-          runAsUser: 1001
+          runAsUser: 65534
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
+          readOnlyRootFilesystem: true
       containers:
       - name: retroboard-api
         securityContext:
@@ -123,7 +130,7 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
-        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-c9b827b
+        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -131,11 +138,11 @@ spec:
           protocol: TCP
         env:
         - name: COOKIE_DOMAIN
-          value: retroboard.homelab.int.zengarden.space
+          value: retroboard-3f54ac9d.homelab.int.zengarden.space
         - name: COOKIE_SECURE
           value: 'true'
         - name: CORS_ORIGIN
-          value: https://retroboard.homelab.int.zengarden.space
+          value: https://retroboard-3f54ac9d.homelab.int.zengarden.space
         - name: DB_HOST
           value: retroboard-psql-rw
         - name: DB_NAME
@@ -191,7 +198,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-c9b827b
+  name: retroboard-api-migration-1-0-0
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -254,7 +261,7 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
-        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-c9b827b
+        image: gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:1.0.0
         imagePullPolicy: IfNotPresent
         command:
         - node
@@ -307,7 +314,7 @@ metadata:
 spec:
   ingressClassName: internal
   rules:
-  - host: retroboard.homelab.int.zengarden.space
+  - host: retroboard-3f54ac9d.homelab.int.zengarden.space
     http:
       paths:
       - path: /api
@@ -355,7 +362,7 @@ spec:
 apiVersion: zengarden.space/v1
 kind: DerivedSecret
 metadata:
-  name: dev-retroboard-api-derived
+  name: ci-3f54ac9d-retroboard-api-derived
   namespace: secrets
 spec:
   retroboardDbUserPassword: 22
@@ -388,9 +395,9 @@ spec:
         JWT_SECRET: '{{ .jwtSecret }}'
   dataFrom:
   - extract:
-      key: dev-retroboard-api
+      key: ci-3f54ac9d-retroboard-api
   - extract:
-      key: dev-retroboard-api-derived
+      key: ci-3f54ac9d-retroboard-api-derived
 ---
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -417,7 +424,7 @@ spec:
         password: '{{ .retroboardDbOwnerUserPassword }}'
   dataFrom:
   - extract:
-      key: dev-retroboard-api-derived
+      key: ci-3f54ac9d-retroboard-api-derived
 ---
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -444,7 +451,7 @@ spec:
         password: '{{ .retroboardDbUserPassword }}'
   dataFrom:
   - extract:
-      key: dev-retroboard-api-derived
+      key: ci-3f54ac9d-retroboard-api-derived
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
