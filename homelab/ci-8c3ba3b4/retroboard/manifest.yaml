@@ -166,10 +166,15 @@ metadata:
     app.kubernetes.io/version: 1.0.0
     app.kubernetes.io/managed-by: Helm
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/ssl-redirect: 'true'
     nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
 spec:
   ingressClassName: internal
+  tls:
+  - hosts:
+    - retroboard-8c3ba3b4.homelab.int.zengarden.space
+    secretName: retroboard-8c3ba3b4-homelab-tls
   rules:
   - host: retroboard-8c3ba3b4.homelab.int.zengarden.space
     http:
