@@ -72,7 +72,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/tetris-game:sha-a52d0bc"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/tetris-game:sha-fef8ee3"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
