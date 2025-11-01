@@ -1,0 +1,148 @@
+---
+# Source: tetris-game/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tetris-game
+  labels:
+    helm.sh/chart: tetris-game-0.1.0
+    app.kubernetes.io/name: tetris-game
+    app.kubernetes.io/instance: tetris-game
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: tetris-game/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: tetris-game
+  labels:
+    helm.sh/chart: tetris-game-0.1.0
+    app.kubernetes.io/name: tetris-game
+    app.kubernetes.io/instance: tetris-game
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: tetris-game
+    app.kubernetes.io/instance: tetris-game
+---
+# Source: tetris-game/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tetris-game
+  labels:
+    helm.sh/chart: tetris-game-0.1.0
+    app.kubernetes.io/name: tetris-game
+    app.kubernetes.io/instance: tetris-game
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tetris-game
+      app.kubernetes.io/instance: tetris-game
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tetris-game
+        app.kubernetes.io/instance: tetris-game
+    spec:
+      serviceAccountName: tetris-game
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tetris-game
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "gitea.homelab.int.zengarden.space/homelab/tetris-game:sha-d878f7d"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - tetris-game
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: tetris-game/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tetris-game
+  labels:
+    helm.sh/chart: tetris-game-0.1.0
+    app.kubernetes.io/name: tetris-game
+    app.kubernetes.io/instance: tetris-game
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "tetris-game.homelab.int.zengarden.space"
+      secretName: tetris-game-tls
+  rules:
+    - host: "tetris-game.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tetris-game
+                port:
+                  number: 80
