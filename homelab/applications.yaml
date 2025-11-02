@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: homelab-applications
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://gitea.homelab.int.zengarden.space/zengarden-space/manifests.git
+        revision: main
+        directories:
+        - path: "homelab/*/*/*"
+  template:
+    metadata:
+      # Name format: homelab.<appproject>.<env>.<projectname>
+      # Example: homelab.apps.dev.retroboard
+      name: 'homelab.{{ index .path.segments 1 }}.{{ index .path.segments 2 }}.{{ index .path.segments 3 }}'
+    spec:
+      # Use the appproject from the path (apps, system, platform)
+      project: '{{ index .path.segments 1 }}'
+      syncPolicy:
+        automated:
+          prune: true
+          allowEmpty: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+      source:
+        repoURL: https://gitea.homelab.int.zengarden.space/zengarden-space/manifests.git
+        targetRevision: main
+        path: '{{.path.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        # Namespace format: <appproject>-<env>-<projectname>
+        namespace: '{{ index .path.segments 1 }}-{{ index .path.segments 2 }}-{{ index .path.segments 3 }}'
