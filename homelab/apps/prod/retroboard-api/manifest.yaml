@@ -41,7 +41,6 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: retroboard-api
-  namespace: prod-retroboard-api
 roleRef:
   kind: Role
   name: retroboard-api-job-watcher
@@ -105,17 +104,18 @@ spec:
             - /bin/bash
             - -c
             - |
-              set -eoux pipefail 
+              set -eoux pipefail
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-3258f14 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-857361d --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1001
+            runAsUser: 65534
             allowPrivilegeEscalation: false
             capabilities:
               drop:
               - ALL
+            readOnlyRootFilesystem: true
       containers:
         - name: retroboard-api
           securityContext:
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-3258f14"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-857361d"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -201,7 +201,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-3258f14
+  name: retroboard-api-migration-sha-857361d
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -267,7 +267,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-3258f14"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-857361d"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
