@@ -36,7 +36,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 type: Opaque
 data:
-  config.yaml: "Y29ubmVjdG9yczoKLSBpZDogbW9jawogIG5hbWU6IE1vY2sgQ29ubmVjdG9yIChDSS9UZXN0aW5nIE9ubHkpCiAgdHlwZTogbW9ja0NhbGxiYWNrCmZyb250ZW5kOgogIGlzc3VlcjogU2VjcmV0IEVkaXRvcgogIHRoZW1lOiBsaWdodAppc3N1ZXI6IGh0dHBzOi8vc2VjcmV0cy5ob21lbGFiLmludC56ZW5nYXJkZW4uc3BhY2UvZGV4Cm9hdXRoMjoKICBza2lwQXBwcm92YWxTY3JlZW46IGZhbHNlCnN0YXRpY0NsaWVudHM6Ci0gaWQ6IHNlY3JldC1lZGl0b3IKICBuYW1lOiBTZWNyZXQgRWRpdG9yCiAgcmVkaXJlY3RVUklzOgogIC0gaHR0cHM6Ly9zZWNyZXRzLmhvbWVsYWIuaW50LnplbmdhcmRlbi5zcGFjZS9hdXRoL2NhbGxiYWNrCiAgc2VjcmV0OiBDSEFOR0VfTUVfR0VORVJBVEVfUkFORE9NX1NFQ1JFVApzdG9yYWdlOgogIGNvbmZpZzoKICAgIGluQ2x1c3RlcjogdHJ1ZQogIHR5cGU6IGt1YmVybmV0ZXMKd2ViOgogIGh0dHA6IDAuMC4wLjA6NTU1Ng=="
+  config.yaml: "Y29ubmVjdG9yczoKLSBjb25maWc6CiAgICBjbGllbnRJRDogJEdPT0dMRV9DTElFTlRfSUQKICAgIGNsaWVudFNlY3JldDogJEdPT0dMRV9DTElFTlRfU0VDUkVUCiAgICBpc3N1ZXI6IGh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbQogICAgcmVkaXJlY3RVUkk6IGh0dHBzOi8vc2VjcmV0cy5ob21lbGFiLmludC56ZW5nYXJkZW4uc3BhY2UvZGV4L2NhbGxiYWNrCiAgICBzY29wZXM6CiAgICAtIG9wZW5pZAogICAgLSBlbWFpbAogICAgLSBwcm9maWxlCiAgaWQ6IGdvb2dsZQogIG5hbWU6IEdvb2dsZQogIHR5cGU6IG9pZGMKZnJvbnRlbmQ6CiAgaXNzdWVyOiBTZWNyZXQgRWRpdG9yCiAgdGhlbWU6IGxpZ2h0Cmlzc3VlcjogaHR0cHM6Ly9zZWNyZXRzLmhvbWVsYWIuaW50LnplbmdhcmRlbi5zcGFjZS9kZXgKb2F1dGgyOgogIHNraXBBcHByb3ZhbFNjcmVlbjogZmFsc2UKc3RhdGljQ2xpZW50czoKLSBpZDogc2VjcmV0LWVkaXRvcgogIG5hbWU6IFNlY3JldCBFZGl0b3IKICByZWRpcmVjdFVSSXM6CiAgLSBodHRwczovL3NlY3JldHMuaG9tZWxhYi5pbnQuemVuZ2FyZGVuLnNwYWNlL2F1dGgvY2FsbGJhY2sKICBzZWNyZXQ6ICRERVhfQ0xJRU5UX1NFQ1JFVApzdG9yYWdlOgogIGNvbmZpZzoKICAgIGluQ2x1c3RlcjogdHJ1ZQogIHR5cGU6IGt1YmVybmV0ZXMKd2ViOgogIGh0dHA6IDAuMC4wLjA6NTU1Ng=="
 ---
 # Source: secret-editor/templates/crds.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -627,7 +627,7 @@ spec:
     metadata:
       annotations:
       
-        checksum/config: 16204cf215a6c1b81363335d3e8061e219c28207dd0ea840edc5a0814b0cd4b9
+        checksum/config: 86cda737c5c1970d97c3dce9eb4ae91167960ca03d4158412a9fd9216994df65
       labels:
         app.kubernetes.io/name: dex
         app.kubernetes.io/instance: secret-editor
@@ -650,6 +650,11 @@ spec:
             - 0.0.0.0:5558
             - /etc/dex/config.yaml
           env:
+          envFrom:
+            - secretRef:
+                name: secret-editor-google-oauth
+            - secretRef:
+                name: secret-editor-auth
           ports:
             - name: http
               containerPort: 5556
@@ -715,7 +720,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/secret-editor:sha-078f05d"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/secret-editor:sha-f4a2898"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -726,8 +731,14 @@ spec:
               value: "secret-editor"
             - name: "DEX_ISSUER_URL"
               value: "https://secrets.homelab.int.zengarden.space/dex"
+            - name: "NEXTAUTH_URL"
+              value: "https://secrets.homelab.int.zengarden.space"
             - name: "NODE_ENV"
               value: "development"
+          envFrom:
+            - secretRef:
+                # Use fixed name to match ExternalSecret target name
+                name: secret-editor-auth
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -796,3 +807,60 @@ spec:
                 name: secret-editor
                 port:
                   number: 80
+---
+# Source: secret-editor/templates/externalsecret-auth.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-editor-auth
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    # Use fixed name to match dex.envFrom in values.yaml
+    name: secret-editor-auth
+    creationPolicy: Owner
+  data:
+    - secretKey: DEX_CLIENT_SECRET
+      remoteRef:
+        key: dev-secret-editor
+        property: dexClientSecret
+    - secretKey: NEXTAUTH_SECRET
+      remoteRef:
+        key: dev-secret-editor
+        property: nextauthSecret
+---
+# Source: secret-editor/templates/externalsecret-google-oauth.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-editor-google-oauth
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: secret-editor-google-oauth
+    creationPolicy: Owner
+  data:
+    - secretKey: GOOGLE_CLIENT_ID
+      remoteRef:
+        key: secret-editor-google-oauth
+        property: client-id
+    - secretKey: GOOGLE_CLIENT_SECRET
+      remoteRef:
+        key: secret-editor-google-oauth
+        property: client-secret
