@@ -1,0 +1,430 @@
+---
+# Source: syncsteps/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: syncsteps
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: syncsteps/templates/redis.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: syncsteps-redis
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  selector:
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/component: redis
+---
+# Source: syncsteps/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: syncsteps
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+---
+# Source: syncsteps/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syncsteps
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: syncsteps
+      app.kubernetes.io/instance: syncsteps
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: syncsteps
+        app.kubernetes.io/instance: syncsteps
+    spec:
+      serviceAccountName: syncsteps
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: syncsteps
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "gitea.homelab.int.zengarden.space/homelab/syncsteps:sha-f3adb0e"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: "AUTH_EMAIL_FROM"
+              value: "noreply@syncsteps.app"
+            - name: "AUTH_PROVIDER"
+              value: "magic-link"
+            - name: "DB_HOST"
+              value: "syncsteps-psql-rw"
+            - name: "DB_NAME"
+              value: "syncsteps"
+            - name: "DB_PORT"
+              value: "5432"
+            - name: "DB_USER"
+              value: "syncsteps-user"
+            - name: "NODE_ENV"
+              value: "development"
+            - name: "REDIS_HOST"
+              value: "syncsteps-redis"
+            - name: "REDIS_PORT"
+              value: "6379"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "syncsteps-user"
+                  key: password
+          envFrom:
+            - secretRef:
+                name: syncsteps-envs-secrets
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - syncsteps
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: syncsteps/templates/redis.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syncsteps-redis
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: syncsteps
+      app.kubernetes.io/instance: syncsteps
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: syncsteps
+        app.kubernetes.io/instance: syncsteps
+        app.kubernetes.io/component: redis
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 999
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+# Source: syncsteps/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: syncsteps
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "syncsteps.homelab.int.zengarden.space"
+      secretName: syncsteps-tls
+  rules:
+    - host: "syncsteps.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: syncsteps
+                port:
+                  number: 80
+---
+# Source: syncsteps/templates/postgresql.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: syncsteps-psql
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: database
+spec:
+  instances: 1
+  storage:
+    size: 10Gi
+  managed:
+    roles:
+      - name: "syncsteps-user"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "syncsteps-user"
+      - name: "syncsteps-owner"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "syncsteps-owner"
+---
+# Source: syncsteps/templates/postgresql.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: syncsteps-db
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: database
+spec:
+  name: "syncsteps"
+  owner: "syncsteps-owner"
+  cluster:
+    name: syncsteps-psql
+  extensions:
+    - name: uuid-ossp
+      ensure: present
+    - name: pg_trgm
+      ensure: present
+---
+# Source: syncsteps/templates/derived-secret.yaml
+apiVersion: zengarden.space/v1
+kind: DerivedSecret
+metadata:
+  name: apps-dev-syncsteps-derived
+  namespace: secrets
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  syncstepsDbUserPassword: 22
+  syncstepsDbOwnerUserPassword: 22
+  jwtSecret: 43
+---
+# Source: syncsteps/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: syncsteps-envs-secrets
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: syncsteps-envs-secrets
+    creationPolicy: Owner
+    template:
+      data:
+        DB_PASSWORD: '{{ .syncstepsDbUserPassword }}'
+        JWT_SECRET: '{{ .jwtSecret }}'
+        SMTP_HOST: '{{ .smtpHost }}'
+        SMTP_PASSWORD: '{{ .smtpPassword }}'
+        SMTP_PORT: '{{ .smtpPort }}'
+        SMTP_USER: '{{ .smtpUser }}'
+  dataFrom:
+    - extract:
+        key: "apps-dev-syncsteps"
+    - extract:
+        key: apps-dev-syncsteps-derived
+---
+# Source: syncsteps/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: syncsteps-owner-user
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "syncsteps-owner"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "syncsteps-owner"
+        password: "{{ .syncstepsDbOwnerUserPassword }}"
+  dataFrom:
+    - extract:
+        key: apps-dev-syncsteps-derived
+---
+# Source: syncsteps/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: syncsteps-user
+  labels:
+    helm.sh/chart: syncsteps-0.1.0
+    app.kubernetes.io/name: syncsteps
+    app.kubernetes.io/instance: syncsteps
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "syncsteps-user"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "syncsteps-user"
+        password: "{{ .syncstepsDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: apps-dev-syncsteps-derived
