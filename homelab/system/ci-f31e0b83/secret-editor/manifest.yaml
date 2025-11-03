@@ -32,7 +32,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 type: Opaque
 data:
-  config.yaml: Y29ubmVjdG9yczogW10KZnJvbnRlbmQ6CiAgaXNzdWVyOiBTZWNyZXQgRWRpdG9yCiAgdGhlbWU6IGxpZ2h0Cmlzc3VlcjogaHR0cHM6Ly9zZWNyZXRzLWYzMWUwYjgzLmhvbWVsYWIuaW50LnplbmdhcmRlbi5zcGFjZS9kZXgKb2F1dGgyOgogIHNraXBBcHByb3ZhbFNjcmVlbjogZmFsc2UKc3RhdGljQ2xpZW50czoKLSBpZDogc2VjcmV0LWVkaXRvcgogIG5hbWU6IFNlY3JldCBFZGl0b3IKICByZWRpcmVjdFVSSXM6CiAgLSBodHRwczovL3NlY3JldHMuaG9tZWxhYi5pbnQuemVuZ2FyZGVuLnNwYWNlL2F1dGgvY2FsbGJhY2sKICBzZWNyZXQ6IENIQU5HRV9NRV9HRU5FUkFURV9SQU5ET01fU0VDUkVUCnN0b3JhZ2U6CiAgY29uZmlnOgogICAgaW5DbHVzdGVyOiB0cnVlCiAgdHlwZToga3ViZXJuZXRlcwp3ZWI6CiAgaHR0cDogMC4wLjAuMDo1NTU2
+  config.yaml: Y29ubmVjdG9yczoKLSBpZDogbW9jawogIG5hbWU6IE1vY2sgQ29ubmVjdG9yIChDSS9UZXN0aW5nIE9ubHkpCiAgdHlwZTogbW9ja0NhbGxiYWNrCmZyb250ZW5kOgogIGlzc3VlcjogU2VjcmV0IEVkaXRvcgogIHRoZW1lOiBsaWdodAppc3N1ZXI6IGh0dHBzOi8vc2VjcmV0cy1mMzFlMGI4My5ob21lbGFiLmludC56ZW5nYXJkZW4uc3BhY2UvZGV4Cm9hdXRoMjoKICBza2lwQXBwcm92YWxTY3JlZW46IGZhbHNlCnN0YXRpY0NsaWVudHM6Ci0gaWQ6IHNlY3JldC1lZGl0b3IKICBuYW1lOiBTZWNyZXQgRWRpdG9yCiAgcmVkaXJlY3RVUklzOgogIC0gaHR0cHM6Ly9zZWNyZXRzLmhvbWVsYWIuaW50LnplbmdhcmRlbi5zcGFjZS9hdXRoL2NhbGxiYWNrCiAgc2VjcmV0OiBDSEFOR0VfTUVfR0VORVJBVEVfUkFORE9NX1NFQ1JFVApzdG9yYWdlOgogIGNvbmZpZzoKICAgIGluQ2x1c3RlcjogdHJ1ZQogIHR5cGU6IGt1YmVybmV0ZXMKd2ViOgogIGh0dHA6IDAuMC4wLjA6NTU1Ng==
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -635,7 +635,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 34e5aad3074c5878e2e9a5db2900d22eda112a70f6890c2ce8d3f9791ce209f1
+        checksum/config: c5c739197f23e3ef226a24d372f536a781a6cbf57264718c20cd62c93a91aaf5
       labels:
         app.kubernetes.io/name: dex
         app.kubernetes.io/instance: secret-editor
@@ -719,7 +719,7 @@ spec:
           readOnlyRootFilesystem: false
           runAsNonRoot: true
           runAsUser: 1001
-        image: gitea.homelab.int.zengarden.space/zengarden-space/secret-editor:sha-87ed519
+        image: gitea.homelab.int.zengarden.space/zengarden-space/secret-editor:sha-cea69ef
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
