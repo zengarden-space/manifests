@@ -508,7 +508,7 @@ roleRef:
   name: secret-editor-dex
 subjects:
 - kind: ServiceAccount
-  namespace: ci-f31e0b83-secret-editor
+  namespace: system-ci-f31e0b83-secret-editor
   name: secret-editor-dex
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -528,7 +528,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: secret-editor
-  namespace: ci-f31e0b83-secret-editor
+  namespace: system-ci-f31e0b83-secret-editor
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -564,7 +564,7 @@ roleRef:
   name: secret-editor-dex
 subjects:
 - kind: ServiceAccount
-  namespace: ci-f31e0b83-secret-editor
+  namespace: system-ci-f31e0b83-secret-editor
   name: secret-editor-dex
 ---
 apiVersion: v1
@@ -719,7 +719,7 @@ spec:
           readOnlyRootFilesystem: false
           runAsNonRoot: true
           runAsUser: 1001
-        image: gitea.homelab.int.zengarden.space/homelab/secret-editor:sha-eae86d0
+        image: gitea.homelab.int.zengarden.space/zengarden-space/secret-editor:sha-cd62a68
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
