@@ -72,7 +72,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/summary-app:sha-2886a9b"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/summary-app:sha-e4d76b8"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -104,6 +104,12 @@ spec:
             requests:
               cpu: 50m
               memory: 64Mi
+          volumeMounts:
+            - name: git-repo
+              mountPath: /app/youtube-summaries
+      volumes:
+        - name: git-repo
+          emptyDir: {}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
