@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/managed-by: Helm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: summary-app
+      app.kubernetes.io/instance: summary-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: summary-app
+        app.kubernetes.io/instance: summary-app
+    spec:
+      serviceAccountName: summary-app
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: summary-app
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+        image: gitea.homelab.int.zengarden.space/zengarden-space/summary-app:sha-719e5b6
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: development
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - summary-app
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+apiVersion: networking.zengarden.space/v1
+kind: PartialIngress
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: 1.0.0
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+spec:
+  ingressClassName: internal
+  tls:
+  - hosts:
+    - next-js-app-template-ed7cdaba.homelab.int.zengarden.space
+    secretName: next-js-app-template-tls
+  rules:
+  - host: next-js-app-template-ed7cdaba.homelab.int.zengarden.space
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: summary-app
+            port:
+              number: 80
