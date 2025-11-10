@@ -1,0 +1,918 @@
+---
+# Source: secret-editor/charts/dex/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: secret-editor/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: secret-editor/charts/dex/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  config.yaml: "Y29ubmVjdG9yczoKLSBjb25maWc6CiAgICBjbGllbnRJRDogJEdPT0dMRV9DTElFTlRfSUQKICAgIGNsaWVudFNlY3JldDogJEdPT0dMRV9DTElFTlRfU0VDUkVUCiAgICBpc3N1ZXI6IGh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbQogICAgcmVkaXJlY3RVUkk6IGh0dHBzOi8vc2VjcmV0cy5ob21lbGFiLmludC56ZW5nYXJkZW4uc3BhY2UvZGV4L2NhbGxiYWNrCiAgICBzY29wZXM6CiAgICAtIG9wZW5pZAogICAgLSBlbWFpbAogICAgLSBwcm9maWxlCiAgaWQ6IGdvb2dsZQogIG5hbWU6IEdvb2dsZQogIHR5cGU6IG9pZGMKZnJvbnRlbmQ6CiAgaXNzdWVyOiBTZWNyZXQgRWRpdG9yCiAgdGhlbWU6IGxpZ2h0Cmlzc3VlcjogaHR0cHM6Ly9zZWNyZXRzLmhvbWVsYWIuaW50LnplbmdhcmRlbi5zcGFjZS9kZXgKb2F1dGgyOgogIHNraXBBcHByb3ZhbFNjcmVlbjogZmFsc2UKc3RhdGljQ2xpZW50czoKLSBpZDogc2VjcmV0LWVkaXRvcgogIG5hbWU6IFNlY3JldCBFZGl0b3IKICByZWRpcmVjdFVSSXM6CiAgLSBodHRwczovL3NlY3JldHMuaG9tZWxhYi5pbnQuemVuZ2FyZGVuLnNwYWNlL2F1dGgvY2FsbGJhY2sKICBzZWNyZXQ6ICRERVhfQ0xJRU5UX1NFQ1JFVApzdG9yYWdlOgogIGNvbmZpZzoKICAgIGluQ2x1c3RlcjogdHJ1ZQogIHR5cGU6IGt1YmVybmV0ZXMKd2ViOgogIGh0dHA6IDAuMC4wLjA6NTU1Ng=="
+---
+# Source: secret-editor/templates/crds.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: secretaccesspolicies.secreteditor.zengarden.space
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  group: secreteditor.zengarden.space
+  names:
+    kind: SecretAccessPolicy
+    listKind: SecretAccessPolicyList
+    plural: secretaccesspolicies
+    singular: secretaccesspolicy
+    shortNames:
+      - sap
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - subject
+                - access
+              properties:
+                subject:
+                  type: object
+                  description: "Who gets access (user, group, or AccessGroup)"
+                  properties:
+                    type:
+                      type: string
+                      enum: [user, group, accessGroup]
+                    name:
+                      type: string
+                access:
+                  type: array
+                  description: "Three-level access control: namespace → secret name → key"
+                  items:
+                    type: object
+                    required:
+                      - namespace
+                    properties:
+                      namespace:
+                        type: string
+                        description: "Namespace pattern (supports wildcards: * and ?)"
+                      secretName:
+                        type: string
+                        description: "Secret name pattern (supports wildcards: * and ?). If omitted, all secrets in namespace."
+                      keys:
+                        type: array
+                        description: "Specific keys within secret. If omitted, all keys accessible."
+                        items:
+                          type: string
+                      permissions:
+                        type: array
+                        description: "Permissions for this access rule"
+                        items:
+                          type: string
+                          enum: [read, write, delete]
+                        default: [read]
+            status:
+              type: object
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string
+      subresources:
+        status: {}
+---
+# Source: secret-editor/templates/crds.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: accessgroups.secreteditor.zengarden.space
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  group: secreteditor.zengarden.space
+  names:
+    kind: AccessGroup
+    listKind: AccessGroupList
+    plural: accessgroups
+    singular: accessgroup
+    shortNames:
+      - ag
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - members
+              properties:
+                members:
+                  type: array
+                  description: "Members of this group (users, groups, or other AccessGroups)"
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - name
+                    properties:
+                      type:
+                        type: string
+                        enum: [user, group, accessGroup]
+                      name:
+                        type: string
+            status:
+              type: object
+              properties:
+                memberCount:
+                  type: integer
+                  description: "Total number of members (including nested groups)"
+      subresources:
+        status: {}
+---
+# Source: secret-editor/templates/crds.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: secretauditlogs.secreteditor.zengarden.space
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  group: secreteditor.zengarden.space
+  names:
+    kind: SecretAuditLog
+    listKind: SecretAuditLogList
+    plural: secretauditlogs
+    singular: secretauditlog
+    shortNames:
+      - sal
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - timestamp
+                - user
+                - action
+                - target
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+                  description: "When the action occurred"
+                user:
+                  type: object
+                  description: "Who performed the action"
+                  required:
+                    - username
+                  properties:
+                    username:
+                      type: string
+                    groups:
+                      type: array
+                      items:
+                        type: string
+                action:
+                  type: string
+                  enum: [read, create, update, delete, breakglass]
+                  description: "What action was performed"
+                target:
+                  type: object
+                  description: "What was accessed"
+                  required:
+                    - namespace
+                    - secretName
+                  properties:
+                    namespace:
+                      type: string
+                    secretName:
+                      type: string
+                    keys:
+                      type: array
+                      description: "Which keys were accessed"
+                      items:
+                        type: string
+                changes:
+                  type: object
+                  description: "What changed (for create/update/delete)"
+                  properties:
+                    keysAdded:
+                      type: array
+                      items:
+                        type: string
+                    keysModified:
+                      type: array
+                      items:
+                        type: string
+                    keysDeleted:
+                      type: array
+                      items:
+                        type: string
+                metadata:
+                  type: object
+                  description: "Additional context"
+                  properties:
+                    sourceIP:
+                      type: string
+                    userAgent:
+                      type: string
+                    breakGlassReason:
+                      type: string
+                    breakGlassAccessId:
+                      type: string
+      additionalPrinterColumns:
+        - name: User
+          type: string
+          jsonPath: .spec.user.username
+        - name: Action
+          type: string
+          jsonPath: .spec.action
+        - name: Secret
+          type: string
+          jsonPath: .spec.target.secretName
+        - name: Namespace
+          type: string
+          jsonPath: .spec.target.namespace
+        - name: Time
+          type: date
+          jsonPath: .spec.timestamp
+---
+# Source: secret-editor/templates/crds.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: breakglassaccesses.secreteditor.zengarden.space
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  group: secreteditor.zengarden.space
+  names:
+    kind: BreakGlassAccess
+    listKind: BreakGlassAccessList
+    plural: breakglassaccesses
+    singular: breakglassaccess
+    shortNames:
+      - bga
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - user
+                - reason
+                - access
+                - duration
+              properties:
+                user:
+                  type: object
+                  required:
+                    - username
+                  properties:
+                    username:
+                      type: string
+                    groups:
+                      type: array
+                      items:
+                        type: string
+                reason:
+                  type: string
+                  description: "Why emergency access is needed"
+                access:
+                  type: object
+                  description: "What emergency access is granted"
+                  required:
+                    - namespace
+                  properties:
+                    namespace:
+                      type: string
+                    secretName:
+                      type: string
+                      description: "If omitted, access to all secrets in namespace"
+                    keys:
+                      type: array
+                      description: "If omitted, access to all keys"
+                      items:
+                        type: string
+                duration:
+                  type: string
+                  description: "How long access is valid (e.g., 1h, 30m)"
+                  pattern: '^[0-9]+(h|m|s)$'
+                createdAt:
+                  type: string
+                  format: date-time
+            status:
+              type: object
+              properties:
+                state:
+                  type: string
+                  enum: [active, expired, revoked]
+                expiresAt:
+                  type: string
+                  format: date-time
+                revokedAt:
+                  type: string
+                  format: date-time
+                revokedBy:
+                  type: string
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: User
+          type: string
+          jsonPath: .spec.user.username
+        - name: Namespace
+          type: string
+          jsonPath: .spec.access.namespace
+        - name: Secret
+          type: string
+          jsonPath: .spec.access.secretName
+        - name: Duration
+          type: string
+          jsonPath: .spec.duration
+        - name: State
+          type: string
+          jsonPath: .status.state
+        - name: Expires
+          type: date
+          jsonPath: .status.expiresAt
+---
+# Source: secret-editor/charts/dex/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["list", "create"]
+---
+# Source: secret-editor/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+  - apiGroups:
+    - secreteditor.zengarden.space
+    resources:
+    - secretaccesspolicies
+    - accessgroups
+    - secretauditlogs
+    - breakglassaccesses
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+---
+# Source: secret-editor/charts/dex/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: secret-editor-dex-cluster
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: secret-editor-dex
+subjects:
+- kind: ServiceAccount
+  namespace: system-prod-secret-editor
+  name: secret-editor-dex
+---
+# Source: secret-editor/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: secret-editor
+subjects:
+  - kind: ServiceAccount
+    name: secret-editor
+    namespace: system-prod-secret-editor
+---
+# Source: secret-editor/charts/dex/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: ["dex.coreos.com"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+# Source: secret-editor/charts/dex/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: secret-editor-dex  
+subjects:
+- kind: ServiceAccount
+  namespace: system-prod-secret-editor
+  name: secret-editor-dex
+---
+# Source: secret-editor/charts/dex/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 5556
+      targetPort: http
+      protocol: TCP
+      appProtocol: http
+    - name: telemetry
+      port: 5558
+      targetPort: telemetry
+      protocol: TCP
+      appProtocol: http
+  selector:
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+---
+# Source: secret-editor/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+---
+# Source: secret-editor/charts/dex/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-editor-dex
+  labels:
+    helm.sh/chart: dex-0.19.1
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "2.41.1"
+    app.kubernetes.io/managed-by: Helm
+    
+  
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dex
+      app.kubernetes.io/instance: secret-editor
+  template:
+    metadata:
+      annotations:
+      
+        checksum/config: 86cda737c5c1970d97c3dce9eb4ae91167960ca03d4158412a9fd9216994df65
+      labels:
+        app.kubernetes.io/name: dex
+        app.kubernetes.io/instance: secret-editor
+    spec:
+      serviceAccountName: secret-editor-dex
+      securityContext:
+        {}
+      containers:
+        - name: dex
+          securityContext:
+            {}
+          image: "ghcr.io/dexidp/dex:v2.41.1"
+          imagePullPolicy: IfNotPresent
+          args:
+            - dex
+            - serve
+            - --web-http-addr
+            - 0.0.0.0:5556
+            - --telemetry-addr
+            - 0.0.0.0:5558
+            - /etc/dex/config.yaml
+          env:
+          envFrom:
+            - secretRef:
+                name: secret-editor-google-oauth
+            - secretRef:
+                name: secret-editor-auth
+          ports:
+            - name: http
+              containerPort: 5556
+              protocol: TCP
+            - name: telemetry
+              containerPort: 5558
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: telemetry
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: telemetry
+          resources:
+            {}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/dex
+              readOnly: true
+      volumes:
+        - name: config
+          secret:
+            secretName: secret-editor-dex
+---
+# Source: secret-editor/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: secret-editor
+      app.kubernetes.io/instance: secret-editor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: secret-editor
+        app.kubernetes.io/instance: secret-editor
+    spec:
+      serviceAccountName: secret-editor
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: secret-editor
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/secret-editor:sha-3550553"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: "DEX_CLIENT_ID"
+              value: "secret-editor"
+            - name: "DEX_ISSUER_URL"
+              value: "https://secrets.homelab.int.zengarden.space/dex"
+            - name: "NEXTAUTH_URL"
+              value: "https://secrets.homelab.int.zengarden.space"
+            - name: "NODE_ENV"
+              value: "production"
+          envFrom:
+            - secretRef:
+                # Use fixed name to match ExternalSecret target name
+                name: secret-editor-auth
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - secret-editor
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: secret-editor/templates/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: secret-editor
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Source: secret-editor/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "secrets.homelab.int.zengarden.space"
+      secretName: secret-editor-tls
+  rules:
+    - host: "secrets.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: secret-editor
+                port:
+                  number: 80
+---
+# Source: secret-editor/templates/externalsecret-auth.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-editor-auth
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    # Use fixed name to match dex.envFrom in values.yaml
+    name: secret-editor-auth
+    creationPolicy: Owner
+  data:
+    - secretKey: DEX_CLIENT_SECRET
+      remoteRef:
+        key: dev-secret-editor
+        property: dexClientSecret
+    - secretKey: NEXTAUTH_SECRET
+      remoteRef:
+        key: dev-secret-editor
+        property: nextauthSecret
+---
+# Source: secret-editor/templates/externalsecret-google-oauth.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-editor-google-oauth
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: secret-editor-google-oauth
+    creationPolicy: Owner
+  data:
+    - secretKey: GOOGLE_CLIENT_ID
+      remoteRef:
+        key: secret-editor-google-oauth
+        property: client-id
+    - secretKey: GOOGLE_CLIENT_SECRET
+      remoteRef:
+        key: secret-editor-google-oauth
+        property: client-secret
+---
+# Source: secret-editor/templates/service-monitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: secret-editor
+  labels:
+    helm.sh/chart: secret-editor-0.1.0
+    app.kubernetes.io/name: secret-editor
+    app.kubernetes.io/instance: secret-editor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: secret-editor
+      app.kubernetes.io/instance: secret-editor
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
