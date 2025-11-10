@@ -33,9 +33,9 @@ spec:
     app.kubernetes.io/name: summary-app
     app.kubernetes.io/instance: summary-app
 ---
-# Source: summary-app/templates/deployment.yaml
+# Source: summary-app/templates/statefulset.yaml
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: summary-app
   labels:
@@ -45,7 +45,8 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
+  serviceName: summary-app
+  replicas: 1  # StatefulSet for single-pod persistence
   selector:
     matchLabels:
       app.kubernetes.io/name: summary-app
@@ -72,7 +73,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/summary-app:sha-e951bfe"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/summary-app:sha-559cb3c"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -81,6 +82,8 @@ spec:
           env:
             - name: "NODE_ENV"
               value: "development"
+            - name: "TASKS_DATA_DIR"
+              value: "/app/data/tasks"
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -107,6 +110,8 @@ spec:
           volumeMounts:
             - name: git-repo
               mountPath: /app/youtube-summaries
+            - name: data
+              mountPath: /app/data
       volumes:
         - name: git-repo
           emptyDir: {}
@@ -122,6 +127,15 @@ spec:
                   - summary-app
               topologyKey: kubernetes.io/hostname
             weight: 100
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
 ---
 # Source: summary-app/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
