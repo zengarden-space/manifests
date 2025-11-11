@@ -106,7 +106,7 @@ spec:
             - |
               set -eoux pipefail
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-328bade --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-64fe0de --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-328bade"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-64fe0de"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-328bade
+  name: retroboard-api-migration-sha-64fe0de
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-328bade"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-64fe0de"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -338,6 +338,41 @@ spec:
   instances: 1
   storage:
     size: 20Gi
+  bootstrap:
+    recovery:
+      source: retroboard-psql
+  externalClusters:
+    - name: retroboard-psql
+      barmanObjectStore:
+        destinationPath: s3://homelab-backup-182747431178-eu-central-1/homelab/apps-dev-retroboard-api/retroboard-psql/
+        s3Credentials:
+          accessKeyId:
+            name: retroboard-psql-backup-s3
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKey:
+            name: retroboard-psql-backup-s3
+            key: AWS_SECRET_ACCESS_KEY
+        wal:
+          compression: gzip
+        data:
+          compression: gzip
+        endpointURL: https://s3.eu-central-1.amazonaws.com
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://homelab-backup-182747431178-eu-central-1/homelab/apps-dev-retroboard-api/retroboard-psql/
+      s3Credentials:
+        accessKeyId:
+          name: retroboard-psql-backup-s3
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: retroboard-psql-backup-s3
+          key: AWS_SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+      data:
+        compression: gzip
+      endpointURL: https://s3.eu-central-1.amazonaws.com
+    retentionPolicy: "14d"
   managed:
     roles:
       - name: "retroboard"
@@ -463,6 +498,53 @@ spec:
   dataFrom:
     - extract:
         key: apps-dev-retroboard-api-derived
+---
+# Source: retroboard-api/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: retroboard-api-backup-s3
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: retroboard-psql-backup-s3
+    creationPolicy: Owner
+    template:
+      data:
+        
+        AWS_ACCESS_KEY_ID: '{{ .awsAccessKeyId }}'
+        AWS_SECRET_ACCESS_KEY: '{{ .awsSecretAccessKey }}'
+  dataFrom:
+    - extract:
+        key: "apps-dev-retroboard-api"
+---
+# Source: retroboard-api/templates/scheduled-backup.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: retroboard-psql-backup
+  labels:
+    helm.sh/chart: retroboard-api-0.1.0
+    app.kubernetes.io/name: retroboard-api
+    app.kubernetes.io/instance: retroboard-api
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  schedule: "0 2 * * *"
+  backupOwnerReference: self
+  cluster:
+    name: retroboard-psql
+  immediate: true
+  method: barmanObjectStore
 ---
 # Source: retroboard-api/templates/service-monitor.yaml
 apiVersion: operator.victoriametrics.com/v1beta1
