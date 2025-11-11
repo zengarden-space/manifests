@@ -1,0 +1,171 @@
+---
+# Source: summary-app/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: summary-app/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+---
+# Source: summary-app/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: summary-app
+  replicas: 1  # StatefulSet for single-pod persistence
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: summary-app
+      app.kubernetes.io/instance: summary-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: summary-app
+        app.kubernetes.io/instance: summary-app
+    spec:
+      serviceAccountName: summary-app
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: summary-app
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/summary-app:sha-910c73d"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: "NODE_ENV"
+              value: "production"
+            - name: "TASKS_DATA_DIR"
+              value: "/app/data/tasks"
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: git-repo
+              mountPath: /app/youtube-summaries
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: git-repo
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - summary-app
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+---
+# Source: summary-app/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: summary-app
+  labels:
+    helm.sh/chart: summary-app-0.1.0
+    app.kubernetes.io/name: summary-app
+    app.kubernetes.io/instance: summary-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "summary-app-prod.homelab.int.zengarden.space"
+      secretName: summary-app-prod-tls
+  rules:
+    - host: "summary-app-prod.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: summary-app
+                port:
+                  number: 80
