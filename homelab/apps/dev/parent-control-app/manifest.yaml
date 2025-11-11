@@ -187,7 +187,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:latest"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-235e39d1a9940495c5c599d29c3568d2a0823b70"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -268,7 +268,7 @@ spec:
         fsGroup: 2000
       containers:
         - name: controller
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:latest"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-235e39d1a9940495c5c599d29c3568d2a0823b70"
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
