@@ -412,7 +412,7 @@ spec:
       - "Homelab"
   issuerRef:
     name: parent-control-ca-issuer
-    kind: ClusterIssuer
+    kind: Issuer
     group: cert-manager.io
 ---
 # Source: parent-control-app/templates/postgresql.yaml
@@ -444,20 +444,6 @@ spec:
         passwordSecret:
           name: "app-owner"
 ---
-# Source: parent-control-app/templates/ca-issuer.yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: parent-control-ca-issuer
-  labels:
-    helm.sh/chart: parent-control-app-0.1.0
-    app.kubernetes.io/name: parent-control-app
-    app.kubernetes.io/instance: parent-control-app
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  selfSigned: {}
----
 # Source: parent-control-app/templates/postgresql.yaml
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
@@ -478,6 +464,21 @@ spec:
   extensions:
     - name: uuid-ossp
       ensure: present
+---
+# Source: parent-control-app/templates/ca-issuer.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: parent-control-ca-issuer
+  namespace: apps-dev-parent-control-app
+  labels:
+    helm.sh/chart: parent-control-app-0.1.0
+    app.kubernetes.io/name: parent-control-app
+    app.kubernetes.io/instance: parent-control-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selfSigned: {}
 ---
 # Source: parent-control-app/templates/db-init-job.yaml
 apiVersion: batch/v1
