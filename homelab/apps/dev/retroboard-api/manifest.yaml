@@ -106,7 +106,7 @@ spec:
             - |
               set -eoux pipefail
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-64fe0de --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-c453c0d --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-64fe0de"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-c453c0d"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-64fe0de
+  name: retroboard-api-migration-sha-c453c0d
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-64fe0de"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-c453c0d"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -338,25 +338,6 @@ spec:
   instances: 1
   storage:
     size: 20Gi
-  bootstrap:
-    recovery:
-      source: retroboard-psql
-  externalClusters:
-    - name: retroboard-psql
-      barmanObjectStore:
-        destinationPath: s3://homelab-backup-182747431178-eu-central-1/homelab/apps-dev-retroboard-api/retroboard-psql/
-        s3Credentials:
-          accessKeyId:
-            name: retroboard-psql-backup-s3
-            key: AWS_ACCESS_KEY_ID
-          secretAccessKey:
-            name: retroboard-psql-backup-s3
-            key: AWS_SECRET_ACCESS_KEY
-        wal:
-          compression: gzip
-        data:
-          compression: gzip
-        endpointURL: https://s3.eu-central-1.amazonaws.com
   backup:
     barmanObjectStore:
       destinationPath: s3://homelab-backup-182747431178-eu-central-1/homelab/apps-dev-retroboard-api/retroboard-psql/
