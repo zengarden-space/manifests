@@ -106,7 +106,7 @@ spec:
             - |
               set -eoux pipefail
               echo "Waiting for migration job to complete..."
-              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-f0e6d46 --timeout=300s
+              kubectl wait --for=condition=complete job/retroboard-api-migration-sha-198eba6 --timeout=300s
               echo "Migration job completed successfully"
           securityContext:
             runAsNonRoot: true
@@ -126,7 +126,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-f0e6d46"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-198eba6"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -195,7 +195,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retroboard-api-migration-sha-f0e6d46
+  name: retroboard-api-migration-sha-198eba6
   labels:
     helm.sh/chart: retroboard-api-0.1.0
     app.kubernetes.io/name: retroboard-api
@@ -261,7 +261,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-f0e6d46"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/retroboard-api:sha-198eba6"
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/scripts/migrate.js", "up"]
           env:
@@ -545,7 +545,7 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
-  schedule: "0 2 * * *"
+  schedule: "0 0 2 * * *"
   backupOwnerReference: self
   cluster:
     name: retroboard-psql
