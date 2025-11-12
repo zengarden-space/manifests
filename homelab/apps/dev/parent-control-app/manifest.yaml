@@ -187,7 +187,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-be4dfe2"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-46efd09"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -268,7 +268,7 @@ spec:
         fsGroup: 2000
       containers:
         - name: controller
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-be4dfe2"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-46efd09"
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
@@ -327,6 +327,141 @@ spec:
         resources:
           requests:
             storage: 10Gi
+---
+# Source: parent-control-app/templates/db-init-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parent-control-app-db-init-v1
+  labels:
+    helm.sh/chart: parent-control-app-0.1.0
+    app.kubernetes.io/name: parent-control-app
+    app.kubernetes.io/instance: parent-control-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: database-init
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: parent-control-app
+        app.kubernetes.io/instance: parent-control-app
+        app.kubernetes.io/component: database-init
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: parent-control-app
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: db-init
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGHOST
+              value: parent-control-app-psql-rw
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: "parent_control"
+            - name: PGUSER
+              value: "app-owner"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "app-owner"
+                  key: password
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; do
+                echo "Waiting for database..."
+                sleep 2
+              done
+
+              echo "Creating tables and triggers..."
+              psql <<'EOF'
+              -- Create shared_urls table
+              CREATE TABLE IF NOT EXISTS shared_urls (
+                id BIGSERIAL PRIMARY KEY,
+                url TEXT NOT NULL,
+                shared_at TIMESTAMPTZ DEFAULT NOW()
+              );
+
+              -- Create observable_routes table
+              CREATE TABLE IF NOT EXISTS observable_routes (
+                id BIGSERIAL PRIMARY KEY,
+                host TEXT NOT NULL,
+                path_prefix TEXT DEFAULT '/',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                deleted_at TIMESTAMPTZ,
+                UNIQUE(host, path_prefix)
+              );
+
+              -- Create notify function
+              CREATE OR REPLACE FUNCTION notify_config_change()
+              RETURNS TRIGGER AS \$\$
+              BEGIN
+                PERFORM pg_notify('config_changes',
+                  json_build_object(
+                    'table', TG_TABLE_NAME,
+                    'operation', TG_OP,
+                    'data', CASE
+                      WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)
+                      ELSE row_to_json(NEW)
+                    END
+                  )::text
+                );
+                RETURN NEW;
+              END;
+              \$\$ LANGUAGE plpgsql;
+
+              -- Drop existing triggers if they exist
+              DROP TRIGGER IF EXISTS shared_urls_notify ON shared_urls;
+              DROP TRIGGER IF EXISTS observable_routes_notify ON observable_routes;
+
+              -- Create triggers
+              CREATE TRIGGER shared_urls_notify
+              AFTER INSERT OR UPDATE OR DELETE ON shared_urls
+              FOR EACH ROW EXECUTE FUNCTION notify_config_change();
+
+              CREATE TRIGGER observable_routes_notify
+              AFTER INSERT OR UPDATE OR DELETE ON observable_routes
+              FOR EACH ROW EXECUTE FUNCTION notify_config_change();
+
+              -- Grant permissions to app user
+              GRANT SELECT, INSERT, UPDATE, DELETE ON shared_urls TO "app-user";
+              GRANT SELECT, INSERT, UPDATE, DELETE ON observable_routes TO "app-user";
+              GRANT USAGE, SELECT ON SEQUENCE shared_urls_id_seq TO "app-user";
+              GRANT USAGE, SELECT ON SEQUENCE observable_routes_id_seq TO "app-user";
+
+              EOF
+
+              echo "Database initialization completed successfully"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
 ---
 # Source: parent-control-app/templates/proxy-mitmweb-ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -582,139 +717,3 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   selfSigned: {}
----
-# Source: parent-control-app/templates/db-init-job.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: parent-control-app-db-init
-  labels:
-    helm.sh/chart: parent-control-app-0.1.0
-    app.kubernetes.io/name: parent-control-app
-    app.kubernetes.io/instance: parent-control-app
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/component: database-init
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation
-spec:
-  ttlSecondsAfterFinished: 300
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: parent-control-app
-        app.kubernetes.io/instance: parent-control-app
-        app.kubernetes.io/component: database-init
-    spec:
-      restartPolicy: OnFailure
-      serviceAccountName: parent-control-app
-      securityContext:
-        fsGroup: 2000
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: db-init
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1001
-          image: postgres:16-alpine
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: PGHOST
-              value: parent-control-app-psql-rw
-            - name: PGPORT
-              value: "5432"
-            - name: PGDATABASE
-              value: "parent_control"
-            - name: PGUSER
-              value: "app-owner"
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "app-owner"
-                  key: password
-          command:
-            - /bin/sh
-            - -c
-            - |
-              set -e
-              echo "Waiting for PostgreSQL to be ready..."
-              until pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; do
-                echo "Waiting for database..."
-                sleep 2
-              done
-
-              echo "Creating tables and triggers..."
-              psql <<'EOF'
-              -- Create shared_urls table
-              CREATE TABLE IF NOT EXISTS shared_urls (
-                id BIGSERIAL PRIMARY KEY,
-                url TEXT NOT NULL,
-                shared_at TIMESTAMPTZ DEFAULT NOW()
-              );
-
-              -- Create observable_routes table
-              CREATE TABLE IF NOT EXISTS observable_routes (
-                id BIGSERIAL PRIMARY KEY,
-                host TEXT NOT NULL,
-                path_prefix TEXT DEFAULT '/',
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                deleted_at TIMESTAMPTZ,
-                UNIQUE(host, path_prefix)
-              );
-
-              -- Create notify function
-              CREATE OR REPLACE FUNCTION notify_config_change()
-              RETURNS TRIGGER AS \$\$
-              BEGIN
-                PERFORM pg_notify('config_changes',
-                  json_build_object(
-                    'table', TG_TABLE_NAME,
-                    'operation', TG_OP,
-                    'data', CASE
-                      WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)
-                      ELSE row_to_json(NEW)
-                    END
-                  )::text
-                );
-                RETURN NEW;
-              END;
-              \$\$ LANGUAGE plpgsql;
-
-              -- Drop existing triggers if they exist
-              DROP TRIGGER IF EXISTS shared_urls_notify ON shared_urls;
-              DROP TRIGGER IF EXISTS observable_routes_notify ON observable_routes;
-
-              -- Create triggers
-              CREATE TRIGGER shared_urls_notify
-              AFTER INSERT OR UPDATE OR DELETE ON shared_urls
-              FOR EACH ROW EXECUTE FUNCTION notify_config_change();
-
-              CREATE TRIGGER observable_routes_notify
-              AFTER INSERT OR UPDATE OR DELETE ON observable_routes
-              FOR EACH ROW EXECUTE FUNCTION notify_config_change();
-
-              -- Grant permissions to app user
-              GRANT SELECT, INSERT, UPDATE, DELETE ON shared_urls TO "app-user";
-              GRANT SELECT, INSERT, UPDATE, DELETE ON observable_routes TO "app-user";
-              GRANT USAGE, SELECT ON SEQUENCE shared_urls_id_seq TO "app-user";
-              GRANT USAGE, SELECT ON SEQUENCE observable_routes_id_seq TO "app-user";
-
-              EOF
-
-              echo "Database initialization completed successfully"
-          resources:
-            limits:
-              cpu: 200m
-              memory: 128Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
