@@ -187,7 +187,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-068e371"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-c7c170f"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -204,13 +204,9 @@ spec:
               value: "app-user"
             - name: "NODE_ENV"
               value: "development"
-            - name: DATABASE_URL
-              value: "postgresql://app-user:${DB_PASSWORD}@parent-control-app-psql-rw:5432/parent_control"
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "app-user"
-                  key: password
+          envFrom:
+            - secretRef:
+                name: parent-control-app-envs-secrets
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -268,16 +264,9 @@ spec:
         fsGroup: 2000
       containers:
         - name: controller
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-068e371"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-c7c170f"
           imagePullPolicy: IfNotPresent
           env:
-            - name: DATABASE_URL
-              value: "postgresql://app-user:${DB_PASSWORD}@parent-control-app-psql-rw:5432/parent_control"
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "app-user"
-                  key: password
             - name: PWA_SERVICE_URL
               value: "http://parent-control-app-pwa/api/sse"
             - name: CA_CERT_PATH
@@ -294,6 +283,9 @@ spec:
                   fieldPath: metadata.name
             - name: PROXY_LOADBALANCER_IP
               value: "192.168.77.251"
+          envFrom:
+            - secretRef:
+                name: parent-control-app-envs-secrets
           volumeMounts:
             - name: config
               mountPath: /config
@@ -475,6 +467,8 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: proxy
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: internal
   tls:
@@ -505,6 +499,8 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: pwa
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: internal
   tls:
@@ -640,7 +636,7 @@ spec:
     creationPolicy: Owner
     template:
       data:
-        {}
+        DB_PASSWORD: '{{ .appDbUserPassword }}'
   dataFrom:
     - extract:
         key: "apps-dev-parent-control-app"
