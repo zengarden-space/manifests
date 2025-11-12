@@ -481,10 +481,8 @@ spec:
   keys:
     appDbUserPassword:
       type: password
-      masterPassword: apps-dev-parent-control-app-master
     appDbOwnerUserPassword:
       type: password
-      masterPassword: apps-dev-parent-control-app-master
 ---
 # Source: parent-control-app/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
