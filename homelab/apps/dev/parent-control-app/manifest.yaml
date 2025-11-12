@@ -187,7 +187,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-1616165"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-84d9247"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -264,7 +264,7 @@ spec:
         fsGroup: 2000
       containers:
         - name: controller
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-1616165"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-84d9247"
           imagePullPolicy: IfNotPresent
           env:
             - name: PWA_SERVICE_URL
@@ -283,6 +283,8 @@ spec:
                   fieldPath: metadata.name
             - name: PROXY_LOADBALANCER_IP
               value: "192.168.77.251"
+            - name: UPSTREAM_DNS
+              value: "192.168.77.1"
           envFrom:
             - secretRef:
                 name: parent-control-app-envs-secrets
