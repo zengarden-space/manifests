@@ -187,7 +187,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-daf6fbe"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-d50ec5d"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -264,11 +264,11 @@ spec:
         fsGroup: 2000
       containers:
         - name: controller
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-daf6fbe"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-d50ec5d"
           imagePullPolicy: IfNotPresent
           env:
             - name: PWA_SERVICE_URL
-              value: "http://parent-control-app-pwa/api/sse"
+              value: "http://parent-control-app-pwa"
             - name: CA_CERT_PATH
               value: "/ca-cert/tls.crt"
             - name: CA_KEY_PATH
