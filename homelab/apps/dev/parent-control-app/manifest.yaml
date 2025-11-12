@@ -469,6 +469,7 @@ metadata:
     app.kubernetes.io/component: proxy
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/upstream-vhost: "127.0.0.1:8081"
 spec:
   ingressClassName: internal
   tls:
