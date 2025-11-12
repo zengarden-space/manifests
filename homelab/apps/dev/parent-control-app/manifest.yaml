@@ -187,7 +187,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-235e39d1a9940495c5c599d29c3568d2a0823b70"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-pwa:sha-93d68b5"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -268,7 +268,7 @@ spec:
         fsGroup: 2000
       containers:
         - name: controller
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-235e39d1a9940495c5c599d29c3568d2a0823b70"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/parent-control-app-controller:sha-93d68b5"
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
@@ -464,6 +464,111 @@ spec:
   extensions:
     - name: uuid-ossp
       ensure: present
+---
+# Source: parent-control-app/templates/derived-secret.yaml
+apiVersion: secrets.oleksiyp.dev/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: apps-dev-parent-control-app-derived
+  namespace: secrets
+  labels:
+    helm.sh/chart: parent-control-app-0.1.0
+    app.kubernetes.io/name: parent-control-app
+    app.kubernetes.io/instance: parent-control-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  keys:
+    appDbUserPassword:
+      type: password
+      masterPassword: apps-dev-parent-control-app-master
+    appDbOwnerUserPassword:
+      type: password
+      masterPassword: apps-dev-parent-control-app-master
+---
+# Source: parent-control-app/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: parent-control-app-envs-secrets
+  labels:
+    helm.sh/chart: parent-control-app-0.1.0
+    app.kubernetes.io/name: parent-control-app
+    app.kubernetes.io/instance: parent-control-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: parent-control-app-envs-secrets
+    creationPolicy: Owner
+    template:
+      data:
+        {}
+  dataFrom:
+    - extract:
+        key: "apps-dev-parent-control-app"
+    - extract:
+        key: apps-dev-parent-control-app-derived
+---
+# Source: parent-control-app/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: parent-control-app-owner-user
+  labels:
+    helm.sh/chart: parent-control-app-0.1.0
+    app.kubernetes.io/name: parent-control-app
+    app.kubernetes.io/instance: parent-control-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "app-owner"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "app-owner"
+        password: "{{ .appDbOwnerUserPassword }}"
+  dataFrom:
+    - extract:
+        key: apps-dev-parent-control-app-derived
+---
+# Source: parent-control-app/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: parent-control-app-user
+  labels:
+    helm.sh/chart: parent-control-app-0.1.0
+    app.kubernetes.io/name: parent-control-app
+    app.kubernetes.io/instance: parent-control-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "app-user"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "app-user"
+        password: "{{ .appDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: apps-dev-parent-control-app-derived
 ---
 # Source: parent-control-app/templates/ca-issuer.yaml
 apiVersion: cert-manager.io/v1
