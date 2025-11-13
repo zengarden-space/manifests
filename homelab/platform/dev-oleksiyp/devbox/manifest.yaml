@@ -16,7 +16,7 @@ metadata:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: devbox-workspace
+  name: devbox-home
   labels:
     helm.sh/chart: devbox-0.1.0
     app.kubernetes.io/name: devbox
@@ -24,33 +24,13 @@ metadata:
     app.kubernetes.io/version: "latest"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance-user: "oleksiyp"
-    app.kubernetes.io/component: workspace
+    app.kubernetes.io/component: home
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 50Gi
----
-# Source: devbox/templates/pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: devbox-settings
-  labels:
-    helm.sh/chart: devbox-0.1.0
-    app.kubernetes.io/name: devbox
-    app.kubernetes.io/instance: devbox
-    app.kubernetes.io/version: "latest"
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance-user: "oleksiyp"
-    app.kubernetes.io/component: settings
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
+      storage: 100Gi
 ---
 # Source: devbox/templates/service.yaml
 apiVersion: v1
@@ -283,7 +263,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-db2ce7c"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-c3b4ea1"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -299,10 +279,8 @@ spec:
             - name: "GIT_COMMITTER_NAME"
               value: "Oleksii Pylypenko"
           volumeMounts:
-            - name: workspace
-              mountPath: /home/dev/workspace
-            - name: settings
-              mountPath: /home/dev/.openvscode-server
+            - name: home
+              mountPath: /home/dev
             - name: connection-token
               mountPath: /home/dev/.connection-token
               subPath: connection-token
@@ -329,12 +307,9 @@ spec:
               cpu: 1000m
               memory: 2Gi
       volumes:
-        - name: workspace
+        - name: home
           persistentVolumeClaim:
-            claimName: devbox-workspace
-        - name: settings
-          persistentVolumeClaim:
-            claimName: devbox-settings
+            claimName: devbox-home
         - name: connection-token
           secret:
             secretName: devbox-connection-token
