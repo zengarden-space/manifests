@@ -117,7 +117,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-0eb4457"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-94bbd98"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -137,6 +137,10 @@ spec:
               mountPath: /home/dev/workspace
             - name: settings
               mountPath: /home/dev/.openvscode-server
+            - name: connection-token
+              mountPath: /home/dev/.connection-token
+              subPath: connection-token
+              readOnly: true
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -167,6 +171,10 @@ spec:
         - name: settings
           persistentVolumeClaim:
             claimName: devbox-settings
+        - name: connection-token
+          secret:
+            secretName: devbox-connection-token
+            defaultMode: 0400
 ---
 # Source: devbox/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -205,3 +213,22 @@ spec:
                 name: devbox
                 port:
                   number: 80
+---
+# Source: devbox/templates/derived-secret.yaml
+apiVersion: secrets.oleksiyp.dev/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: devbox-connection-token
+  labels:
+    helm.sh/chart: devbox-0.1.0
+    app.kubernetes.io/name: devbox
+    app.kubernetes.io/instance: devbox
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance-user: "oleksiyp"
+spec:
+  keys:
+    connection-token:
+      type: password
+      length: 32
+      masterPassword: devbox-master
