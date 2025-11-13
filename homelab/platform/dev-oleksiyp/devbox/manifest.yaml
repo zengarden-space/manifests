@@ -64,13 +64,179 @@ metadata:
     app.kubernetes.io/version: "latest"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance-user: "oleksiyp"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: box-oleksiyp.homelab.int.zengarden.space
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
-    - port: 80
+    - port: 3000
       targetPort: 3000
       protocol: TCP
-      name: http
+      name: port-3000
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: port-3001
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP
+      name: port-3002
+    - port: 3003
+      targetPort: 3003
+      protocol: TCP
+      name: port-3003
+    - port: 3004
+      targetPort: 3004
+      protocol: TCP
+      name: port-3004
+    - port: 3005
+      targetPort: 3005
+      protocol: TCP
+      name: port-3005
+    - port: 3006
+      targetPort: 3006
+      protocol: TCP
+      name: port-3006
+    - port: 3007
+      targetPort: 3007
+      protocol: TCP
+      name: port-3007
+    - port: 3008
+      targetPort: 3008
+      protocol: TCP
+      name: port-3008
+    - port: 3009
+      targetPort: 3009
+      protocol: TCP
+      name: port-3009
+    - port: 3010
+      targetPort: 3010
+      protocol: TCP
+      name: port-3010
+    - port: 3011
+      targetPort: 3011
+      protocol: TCP
+      name: port-3011
+    - port: 3012
+      targetPort: 3012
+      protocol: TCP
+      name: port-3012
+    - port: 3013
+      targetPort: 3013
+      protocol: TCP
+      name: port-3013
+    - port: 3014
+      targetPort: 3014
+      protocol: TCP
+      name: port-3014
+    - port: 3015
+      targetPort: 3015
+      protocol: TCP
+      name: port-3015
+    - port: 3016
+      targetPort: 3016
+      protocol: TCP
+      name: port-3016
+    - port: 3017
+      targetPort: 3017
+      protocol: TCP
+      name: port-3017
+    - port: 3018
+      targetPort: 3018
+      protocol: TCP
+      name: port-3018
+    - port: 3019
+      targetPort: 3019
+      protocol: TCP
+      name: port-3019
+    - port: 3020
+      targetPort: 3020
+      protocol: TCP
+      name: port-3020
+    - port: 3021
+      targetPort: 3021
+      protocol: TCP
+      name: port-3021
+    - port: 3022
+      targetPort: 3022
+      protocol: TCP
+      name: port-3022
+    - port: 3023
+      targetPort: 3023
+      protocol: TCP
+      name: port-3023
+    - port: 3024
+      targetPort: 3024
+      protocol: TCP
+      name: port-3024
+    - port: 3025
+      targetPort: 3025
+      protocol: TCP
+      name: port-3025
+    - port: 3026
+      targetPort: 3026
+      protocol: TCP
+      name: port-3026
+    - port: 3027
+      targetPort: 3027
+      protocol: TCP
+      name: port-3027
+    - port: 3028
+      targetPort: 3028
+      protocol: TCP
+      name: port-3028
+    - port: 3029
+      targetPort: 3029
+      protocol: TCP
+      name: port-3029
+    - port: 3030
+      targetPort: 3030
+      protocol: TCP
+      name: port-3030
+    - port: 3031
+      targetPort: 3031
+      protocol: TCP
+      name: port-3031
+    - port: 3032
+      targetPort: 3032
+      protocol: TCP
+      name: port-3032
+    - port: 3033
+      targetPort: 3033
+      protocol: TCP
+      name: port-3033
+    - port: 3034
+      targetPort: 3034
+      protocol: TCP
+      name: port-3034
+    - port: 3035
+      targetPort: 3035
+      protocol: TCP
+      name: port-3035
+    - port: 3036
+      targetPort: 3036
+      protocol: TCP
+      name: port-3036
+    - port: 3037
+      targetPort: 3037
+      protocol: TCP
+      name: port-3037
+    - port: 3038
+      targetPort: 3038
+      protocol: TCP
+      name: port-3038
+    - port: 3039
+      targetPort: 3039
+      protocol: TCP
+      name: port-3039
+    - port: 3040
+      targetPort: 3040
+      protocol: TCP
+      name: port-3040
+    - port: 5555
+      targetPort: 5555
+      protocol: TCP
+      name: port-5555
   selector:
     app.kubernetes.io/name: devbox
     app.kubernetes.io/instance: devbox
@@ -117,11 +283,11 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-77aa93a"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-db2ce7c"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: 3000
+              containerPort: 5555
               protocol: TCP
           env:
             - name: "GIT_AUTHOR_EMAIL"
@@ -210,7 +376,7 @@ spec:
               service:
                 name: devbox
                 port:
-                  number: 80
+                  number: 5555
 ---
 # Source: devbox/templates/derived-secret.yaml
 apiVersion: secrets.oleksiyp.dev/v1alpha1
