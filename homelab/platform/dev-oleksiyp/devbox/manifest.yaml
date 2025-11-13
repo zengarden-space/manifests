@@ -117,7 +117,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-94bbd98"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/devbox:sha-a13a85b"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -231,4 +231,3 @@ spec:
     connection-token:
       type: password
       length: 32
-      masterPassword: devbox-master
