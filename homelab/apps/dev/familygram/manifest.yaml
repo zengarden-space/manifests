@@ -855,7 +855,7 @@ spec:
               drop:
               - ALL
             readOnlyRootFilesystem: false
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/familygram:main-b31ae84"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/familygram:main-2240149"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -2290,7 +2290,7 @@ spec:
 
       containers:
         - name: db-migration
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/familygram:main-b31ae84"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/familygram:main-2240149"
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
