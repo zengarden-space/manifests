@@ -96,7 +96,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-c93d6f9"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-1d70b46"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -122,6 +122,10 @@ spec:
                 secretKeyRef:
                   name: "training-user"
                   key: password
+            - name: DATABASE_URL
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public"
+            - name: REDIS_URL
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)"
           envFrom:
             - secretRef:
                 name: training-app-envs-secrets
