@@ -88,7 +88,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-6561f61"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-1f33fb8"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1001
@@ -98,7 +98,7 @@ spec:
               drop:
               - ALL
             readOnlyRootFilesystem: false
-          command: ["npx", "prisma", "migrate", "deploy"]
+          command: ["node_modules/.bin/prisma", "migrate", "deploy"]
           env:
             - name: "DB_HOST"
               value: "training-app-psql-rw"
@@ -131,7 +131,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-6561f61"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-1f33fb8"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
