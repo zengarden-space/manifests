@@ -98,7 +98,7 @@ spec:
               drop:
               - ALL
             readOnlyRootFilesystem: false
-          command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+          command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
           env:
             - name: "DB_HOST"
               value: "training-app-psql-rw"
