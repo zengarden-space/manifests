@@ -86,6 +86,33 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: migrate
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-a74ef09"
+          imagePullPolicy: IfNotPresent
+          command: ["npx", "prisma", "migrate", "deploy"]
+          env:
+            - name: "DB_HOST"
+              value: "training-app-psql-rw"
+            - name: "DB_NAME"
+              value: "training"
+            - name: "DB_PORT"
+              value: "5432"
+            - name: "DB_USER"
+              value: "training-user"
+            - name: "NODE_ENV"
+              value: "development"
+            - name: "REDIS_HOST"
+              value: "training-app-redis"
+            - name: "REDIS_PORT"
+              value: "6379"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "training-user"
+                  key: password
+            - name: DATABASE_URL
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public&sslmode=require&sslaccept=accept_invalid_certs"
       containers:
         - name: training-app
           securityContext:
@@ -96,7 +123,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-1d70b46"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-a74ef09"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -123,7 +150,7 @@ spec:
                   name: "training-user"
                   key: password
             - name: DATABASE_URL
-              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public"
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public&sslmode=require&sslaccept=accept_invalid_certs"
             - name: REDIS_URL
               value: "redis://$(REDIS_HOST):$(REDIS_PORT)"
           envFrom:
