@@ -88,8 +88,16 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-a74ef09"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-6561f61"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
           command: ["npx", "prisma", "migrate", "deploy"]
           env:
             - name: "DB_HOST"
@@ -123,7 +131,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-a74ef09"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-6561f61"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
