@@ -96,7 +96,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/homelab/training-app:sha-8dd225c"
+          image: "gitea.homelab.int.zengarden.space/homelab/training-app:sha-c93d6f9"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -318,7 +318,7 @@ spec:
       ensure: present
 ---
 # Source: training-app/templates/derived-secret.yaml
-apiVersion: zengarden.space/v1
+apiVersion: secrets.oleksiyp.dev/v1alpha1
 kind: DerivedSecret
 metadata:
   name: apps-dev-training-app-derived
@@ -330,9 +330,13 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
-  trainingDbUserPassword: 22
-  trainingDbOwnerUserPassword: 22
-  jwtSecret: 43
+  keys:
+    trainingDbUserPassword:
+      type: password
+    trainingDbOwnerUserPassword:
+      type: password
+    jwtSecret:
+      type: encryption-key
 ---
 # Source: training-app/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
