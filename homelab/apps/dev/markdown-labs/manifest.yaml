@@ -148,6 +148,8 @@ spec:
               value: "training-user"
             - name: "NODE_ENV"
               value: "development"
+            - name: "NEXT_PUBLIC_BASE_URL"
+              value: "https://markdown-labs.homelab.int.zengarden.space"
             - name: "REDIS_HOST"
               value: "markdown-labs-redis"
             - name: "REDIS_PORT"
