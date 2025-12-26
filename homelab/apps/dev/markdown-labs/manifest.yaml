@@ -88,7 +88,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-d6d01a1"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-1e75fe3"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1001
@@ -98,10 +98,8 @@ spec:
               drop:
               - ALL
             readOnlyRootFilesystem: false
-          command: ["node", "node_modules_full/prisma/build/index.js", "migrate", "deploy"]
+          command: ["npx", "prisma", "migrate", "deploy"]
           env:
-            - name: NODE_PATH
-              value: "/app/node_modules_full"
             - name: "DB_HOST"
               value: "markdown-labs-psql-rw"
             - name: "DB_NAME"
@@ -133,7 +131,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-d6d01a1"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-1e75fe3"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
