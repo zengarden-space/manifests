@@ -1,0 +1,513 @@
+---
+# Source: markdown-labs/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: markdown-labs
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: markdown-labs/templates/redis.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: markdown-labs-redis
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  selector:
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/component: redis
+---
+# Source: markdown-labs/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: markdown-labs
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+---
+# Source: markdown-labs/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: markdown-labs
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: markdown-labs
+      app.kubernetes.io/instance: markdown-labs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: markdown-labs
+        app.kubernetes.io/instance: markdown-labs
+    spec:
+      serviceAccountName: markdown-labs
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: migrate
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-ec3bf49"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+          command: ["npx", "prisma", "migrate", "deploy"]
+          env:
+            - name: "DB_HOST"
+              value: "markdown-labs-psql-rw"
+            - name: "DB_NAME"
+              value: "training"
+            - name: "DB_PORT"
+              value: "5432"
+            - name: "DB_USER"
+              value: "training-user"
+            - name: "NODE_ENV"
+              value: "production"
+            - name: "REDIS_HOST"
+              value: "markdown-labs-redis"
+            - name: "REDIS_PORT"
+              value: "6379"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "training-user"
+                  key: password
+            - name: DATABASE_URL
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public&sslmode=require&sslaccept=accept_invalid_certs"
+      containers:
+        - name: markdown-labs
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-ec3bf49"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: "DB_HOST"
+              value: "markdown-labs-psql-rw"
+            - name: "DB_NAME"
+              value: "training"
+            - name: "DB_PORT"
+              value: "5432"
+            - name: "DB_USER"
+              value: "training-user"
+            - name: "NODE_ENV"
+              value: "production"
+            - name: "REDIS_HOST"
+              value: "markdown-labs-redis"
+            - name: "REDIS_PORT"
+              value: "6379"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "training-user"
+                  key: password
+            - name: DATABASE_URL
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public&sslmode=require&sslaccept=accept_invalid_certs"
+            - name: REDIS_URL
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)"
+          envFrom:
+            - secretRef:
+                name: markdown-labs-envs-secrets
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - markdown-labs
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: markdown-labs/templates/redis.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: markdown-labs-redis
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: markdown-labs
+      app.kubernetes.io/instance: markdown-labs
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: markdown-labs
+        app.kubernetes.io/instance: markdown-labs
+        app.kubernetes.io/component: redis
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 999
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+# Source: markdown-labs/templates/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: markdown-labs
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: markdown-labs
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Source: markdown-labs/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: markdown-labs
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: external
+  rules:
+    - host: "markdown-labs.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: markdown-labs
+                port:
+                  number: 80
+---
+# Source: markdown-labs/templates/postgresql.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: markdown-labs-psql
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: database
+spec:
+  instances: 2
+  storage:
+    size: 50Gi
+  managed:
+    roles:
+      - name: "training-user"
+        ensure: present
+        login: true
+        inRoles:
+          - "training-owner"
+        passwordSecret:
+          name: "training-user"
+      - name: "training-owner"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "training-owner"
+---
+# Source: markdown-labs/templates/postgresql.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: markdown-labs-db
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: database
+spec:
+  name: "training"
+  owner: "training-owner"
+  cluster:
+    name: markdown-labs-psql
+  extensions:
+    - name: uuid-ossp
+      ensure: present
+---
+# Source: markdown-labs/templates/derived-secret.yaml
+apiVersion: secrets.oleksiyp.dev/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: apps-prod-markdown-labs-derived
+  namespace: secrets
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  keys:
+    trainingDbUserPassword:
+      type: password
+    trainingDbOwnerUserPassword:
+      type: password
+    jwtSecret:
+      type: encryption-key
+---
+# Source: markdown-labs/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: markdown-labs-envs-secrets
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: markdown-labs-envs-secrets
+    creationPolicy: Owner
+    template:
+      data:
+        JWT_SECRET: '{{ .jwtSecret }}'
+        RESEND_API_KEY: '{{ .resendApiKey }}'
+  dataFrom:
+    - extract:
+        key: "apps-prod-markdown-labs"
+    - extract:
+        key: apps-prod-markdown-labs-derived
+---
+# Source: markdown-labs/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: markdown-labs-owner-user
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "training-owner"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "training-owner"
+        password: "{{ .trainingDbOwnerUserPassword }}"
+  dataFrom:
+    - extract:
+        key: apps-prod-markdown-labs-derived
+---
+# Source: markdown-labs/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: markdown-labs-user
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "training-user"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "training-user"
+        password: "{{ .trainingDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: apps-prod-markdown-labs-derived
+---
+# Source: markdown-labs/templates/service-monitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: markdown-labs
+  labels:
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
+    app.kubernetes.io/instance: markdown-labs
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: markdown-labs
+      app.kubernetes.io/instance: markdown-labs
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
