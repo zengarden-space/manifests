@@ -88,7 +88,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-68beac4"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-ec3bf49"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1001
@@ -108,8 +108,6 @@ spec:
               value: "5432"
             - name: "DB_USER"
               value: "training-user"
-            - name: "NEXT_PUBLIC_BASE_URL"
-              value: "https://markdown-labs.homelab.int.zengarden.space"
             - name: "NODE_ENV"
               value: "development"
             - name: "REDIS_HOST"
@@ -133,7 +131,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-68beac4"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-ec3bf49"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -148,8 +146,6 @@ spec:
               value: "5432"
             - name: "DB_USER"
               value: "training-user"
-            - name: "NEXT_PUBLIC_BASE_URL"
-              value: "https://markdown-labs.homelab.int.zengarden.space"
             - name: "NODE_ENV"
               value: "development"
             - name: "REDIS_HOST"
