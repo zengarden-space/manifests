@@ -1,24 +1,24 @@
 ---
-# Source: training-app/templates/serviceaccount.yaml
+# Source: markdown-labs/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: training-app
+  name: training-app-markdown-labs
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: training-app/templates/redis.yaml
+# Source: markdown-labs/templates/redis.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: training-app-redis
+  name: training-app-markdown-labs-redis
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -31,18 +31,18 @@ spec:
     protocol: TCP
     name: redis
   selector:
-    app.kubernetes.io/name: training-app
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/component: redis
 ---
-# Source: training-app/templates/service.yaml
+# Source: markdown-labs/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: training-app
+  name: training-app-markdown-labs
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -54,17 +54,17 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: training-app
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
 ---
-# Source: training-app/templates/deployment.yaml
+# Source: markdown-labs/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: training-app
+  name: training-app-markdown-labs
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -72,15 +72,15 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: training-app
+      app.kubernetes.io/name: markdown-labs
       app.kubernetes.io/instance: training-app
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: training-app
+        app.kubernetes.io/name: markdown-labs
         app.kubernetes.io/instance: training-app
     spec:
-      serviceAccountName: training-app
+      serviceAccountName: training-app-markdown-labs
       securityContext:
         fsGroup: 2000
         runAsNonRoot: true
@@ -88,7 +88,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-1f33fb8"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-90abfae"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1001
@@ -98,8 +98,10 @@ spec:
               drop:
               - ALL
             readOnlyRootFilesystem: false
-          command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+          command: ["node", "node_modules_full/prisma/build/index.js", "migrate", "deploy"]
           env:
+            - name: NODE_PATH
+              value: "/app/node_modules_full"
             - name: "DB_HOST"
               value: "training-app-psql-rw"
             - name: "DB_NAME"
@@ -122,7 +124,7 @@ spec:
             - name: DATABASE_URL
               value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?schema=public&sslmode=require&sslaccept=accept_invalid_certs"
       containers:
-        - name: training-app
+        - name: markdown-labs
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -131,7 +133,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-1f33fb8"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/training-app:sha-90abfae"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -163,7 +165,7 @@ spec:
               value: "redis://$(REDIS_HOST):$(REDIS_PORT)"
           envFrom:
             - secretRef:
-                name: training-app-envs-secrets
+                name: training-app-markdown-labs-envs-secrets
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -200,14 +202,14 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
 ---
-# Source: training-app/templates/redis.yaml
+# Source: markdown-labs/templates/redis.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: training-app-redis
+  name: training-app-markdown-labs-redis
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -216,13 +218,13 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: training-app
+      app.kubernetes.io/name: markdown-labs
       app.kubernetes.io/instance: training-app
       app.kubernetes.io/component: redis
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: training-app
+        app.kubernetes.io/name: markdown-labs
         app.kubernetes.io/instance: training-app
         app.kubernetes.io/component: redis
     spec:
@@ -273,14 +275,14 @@ spec:
       - name: data
         emptyDir: {}
 ---
-# Source: training-app/templates/ingress.yaml
+# Source: markdown-labs/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: training-app
+  name: training-app-markdown-labs
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -302,18 +304,18 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: training-app
+                name: training-app-markdown-labs
                 port:
                   number: 80
 ---
-# Source: training-app/templates/postgresql.yaml
+# Source: markdown-labs/templates/postgresql.yaml
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: training-app-psql
+  name: training-app-markdown-labs-psql
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -335,14 +337,14 @@ spec:
         passwordSecret:
           name: "training-owner"
 ---
-# Source: training-app/templates/postgresql.yaml
+# Source: markdown-labs/templates/postgresql.yaml
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: training-app-db
+  name: training-app-markdown-labs-db
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -351,20 +353,20 @@ spec:
   name: "training"
   owner: "training-owner"
   cluster:
-    name: training-app-psql
+    name: training-app-markdown-labs-psql
   extensions:
     - name: uuid-ossp
       ensure: present
 ---
-# Source: training-app/templates/derived-secret.yaml
+# Source: markdown-labs/templates/derived-secret.yaml
 apiVersion: secrets.oleksiyp.dev/v1alpha1
 kind: DerivedSecret
 metadata:
   name: apps-dev-training-app-derived
   namespace: secrets
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -377,14 +379,14 @@ spec:
     jwtSecret:
       type: encryption-key
 ---
-# Source: training-app/templates/external-secrets.yaml
+# Source: markdown-labs/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: training-app-envs-secrets
+  name: training-app-markdown-labs-envs-secrets
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -394,7 +396,7 @@ spec:
     name: secrets
     kind: ClusterSecretStore
   target:
-    name: training-app-envs-secrets
+    name: training-app-markdown-labs-envs-secrets
     creationPolicy: Owner
     template:
       data:
@@ -406,14 +408,14 @@ spec:
     - extract:
         key: apps-dev-training-app-derived
 ---
-# Source: training-app/templates/external-secrets.yaml
+# Source: markdown-labs/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: training-app-owner-user
+  name: training-app-markdown-labs-owner-user
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
@@ -434,14 +436,14 @@ spec:
     - extract:
         key: apps-dev-training-app-derived
 ---
-# Source: training-app/templates/external-secrets.yaml
+# Source: markdown-labs/templates/external-secrets.yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: training-app-user
+  name: training-app-markdown-labs-user
   labels:
-    helm.sh/chart: training-app-0.1.0
-    app.kubernetes.io/name: training-app
+    helm.sh/chart: markdown-labs-0.1.0
+    app.kubernetes.io/name: markdown-labs
     app.kubernetes.io/instance: training-app
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
