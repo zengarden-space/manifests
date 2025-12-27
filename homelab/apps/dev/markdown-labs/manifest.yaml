@@ -91,7 +91,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-9cd4c44"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-697fd8e"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1001
@@ -136,7 +136,7 @@ spec:
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1001
-          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-9cd4c44"
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/markdown-labs:sha-697fd8e"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
