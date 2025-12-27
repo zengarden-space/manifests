@@ -1,0 +1,297 @@
+---
+# Source: backstage/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backstage
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: backstage/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+---
+# Source: backstage/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backstage
+      app.kubernetes.io/instance: backstage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backstage
+        app.kubernetes.io/instance: backstage
+    spec:
+      serviceAccountName: backstage
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backstage
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "gitea.homelab.int.zengarden.space/zengarden-space/backstage:sha-eb3c518"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7007
+              protocol: TCP
+          env:
+            - name: "NODE_ENV"
+              value: "production"
+            - name: "POSTGRES_HOST"
+              value: "backstage-psql-rw"
+            - name: "POSTGRES_PORT"
+              value: "5432"
+            - name: "POSTGRES_USER"
+              value: "backstage"
+          envFrom:
+            - secretRef:
+                name: backstage-envs-secrets
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - backstage
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+---
+# Source: backstage/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backstage
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: internal
+  tls:
+    - hosts:
+        - "backstage.homelab.int.zengarden.space"
+      secretName: backstage-tls
+  rules:
+    - host: "backstage.homelab.int.zengarden.space"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backstage
+                port:
+                  number: 80
+---
+# Source: backstage/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: backstage-psql
+spec:
+  instances: 1
+  storage:
+    size: 20Gi
+  managed:
+    roles:
+      - name: "backstage"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "backstage"
+      - name: "backstage-owner"
+        ensure: present
+        login: true
+        passwordSecret:
+          name: "backstage-owner"
+---
+# Source: backstage/templates/psql-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: backstage-db
+spec:
+  name: "backstage"
+  owner: "backstage-owner"
+  cluster:
+    name: backstage-psql
+---
+# Source: backstage/templates/derived-secret.yaml
+apiVersion: secrets.oleksiyp.dev/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: platform-prod-backstage-derived
+  namespace: secrets
+spec:
+  type: Opaque
+  keys:
+    backstageDbUserPassword:
+      type: password  # 26 chars by default
+      masterPassword: default
+    backstageDbOwnerUserPassword:
+      type: password  # 26 chars by default
+      masterPassword: default
+---
+# Source: backstage/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: backstage-envs-secrets
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: backstage-envs-secrets
+    creationPolicy: Owner
+    template:
+      data:
+        POSTGRES_PASSWORD: '{{ .backstageDbUserPassword }}'
+  dataFrom:
+    - extract:
+        key: "platform-prod-backstage"
+    - extract:
+        key: platform-prod-backstage-derived
+---
+# Source: backstage/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: backstage-owner-user
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "backstage-owner"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "backstage-owner"
+        password: "{{ .backstageDbOwnerUserPassword }}"
+  dataFrom:
+    - extract:
+        key: platform-prod-backstage-derived
+---
+# Source: backstage/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: backstage-user
+  labels:
+    helm.sh/chart: backstage-0.1.0
+    app.kubernetes.io/name: backstage
+    app.kubernetes.io/instance: backstage
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: secrets
+    kind: ClusterSecretStore
+  target:
+    name: "backstage"
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/basic-auth
+      data:
+        username: "backstage"
+        password: "{{ .backstageDbUserPassword }}"
+  dataFrom:
+    - extract:
+        key: platform-prod-backstage-derived
